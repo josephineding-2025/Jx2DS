@@ -1,7 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { ParsedExpense } from '@/types'
 
-const client = new Anthropic()
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+})
 
 const SYSTEM_PROMPT = `You are a Malaysian receipt parser. Extract structured data from receipt images. Return ONLY valid JSON — no markdown, no text before or after.
 Use categories: "Food & Drinks", "Transport", "Groceries", "Entertainment", "Bills", "Shopping", "Health", "Others".
@@ -28,18 +31,19 @@ export async function parseReceiptImage(
   mimeType: string
 ): Promise<ParsedExpense> {
   const today = new Date().toISOString().split('T')[0]
+  const model = process.env.LLM_VISION_MODEL ?? 'anthropic/claude-sonnet-4-6'
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const res = await client.chat.completions.create({
+    model,
     max_tokens: 512,
-    system: SYSTEM_PROMPT,
     messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
         content: [
           {
-            type: 'image',
-            source: { type: 'base64', media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: imageBase64 },
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
           },
           { type: 'text', text: `Today is ${today}. Parse this receipt.` },
         ],
@@ -47,6 +51,6 @@ export async function parseReceiptImage(
     ],
   })
 
-  const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
+  const text = res.choices[0]?.message?.content ?? ''
   return JSON.parse(stripFences(text)) as ParsedExpense
 }

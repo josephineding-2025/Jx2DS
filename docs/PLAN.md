@@ -325,58 +325,65 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 
 ## Day-by-Day Checklist
 
-### Day 1 — Scaffold + Voice + Receipt
-- [ ] `npx create-next-app@latest kira --typescript --tailwind --app`
-- [ ] Install: `framer-motion recharts @anthropic-ai/sdk @supabase/supabase-js lucide-react`
-- [ ] `npx shadcn@latest init` + add: button, card, dialog, sheet, slider, tabs
-- [ ] Configure `tailwind.config.ts` with GX color palette
-- [ ] Build: `GradientHeader`, `TabBar`, `PageShell`, `(shell)/layout.tsx`
-- [ ] Create Supabase project → run schema SQL → run seed SQL
-- [ ] Build `useVoiceRecorder.ts` (Web Speech API, works Chrome/Safari only)
-- [ ] Build `VoiceSheet`, `VoiceWaveform`, `VoiceTranscript`, `VoiceConfirm`
-- [ ] Implement `POST /api/parse-voice` (Haiku call → JSON → Supabase write)
-- [ ] Build `ReceiptSheet`, `ReceiptPreview` (Canvas resize to 1024px before encode)
-- [ ] Implement `POST /api/parse-receipt` (Sonnet Vision → same JSON schema)
-- [ ] Build `ReceiptConfirm`
-- [ ] Build `BalanceCard`, `QuickActions` for Home tab
-- [ ] **Day 1 gate:** Voice → transaction + debts in Supabase ✓ Receipt → transaction ✓
+### Day 1 — Scaffold + Backend ✅ COMPLETE
+- [x] Scaffold Next.js 16 with pnpm, TypeScript, Tailwind, App Router
+- [x] Install: `framer-motion recharts openai lucide-react @prisma/adapter-pg pg`
+- [x] Prisma 7 schema — all 9 models (users, transactions, debt_records, buckets, musim_events, squad, squad_members, squad_streaks, shared_buckets, shared_bucket_members)
+- [x] `prisma migrate dev --name init` — tables created in Supabase Postgres
+- [x] `POST /api/seed` + `DELETE /api/seed` — full seed + demo reset
+- [x] Seed run — Amirah + squad + transactions + debts + musim events in DB
+- [x] `lib/claude/haiku.ts` — OpenRouter NLP parser (model from `LLM_NLP_MODEL` env)
+- [x] `lib/claude/sonnet.ts` — OpenRouter Vision parser (model from `LLM_VISION_MODEL` env)
+- [x] `lib/finance/reconcile.ts` — fuzzy name + amount matching
+- [x] `lib/finance/musim.ts` — days remaining + daily savings calc
+- [x] `lib/finance/projection.ts` — compound growth `FV = PV × (1+r)^n`
+- [x] `hooks/useVoiceRecorder.ts` — Web Speech API abstraction
+- [x] `providers/DemoUserProvider.tsx` — hardcoded Amirah UUID context
+- [x] `POST /api/parse-voice` — transcript → OpenRouter → ParsedExpense JSON ✓
+- [x] `POST /api/parse-receipt` — base64 image → OpenRouter Vision → ParsedExpense JSON ✓
+- [x] `POST /api/reconcile` — fuzzy match + Prisma update ✓
+- [x] `POST /api/arus` — salary split → bucket balance update ✓
+- [x] `GET /api/musim` — countdown + daily targets ✓
+- [x] `app/test/page.tsx` — minimal test UI at `/test`
+- [x] **Day 1 gate:** All 5 backend routes verified via `/test` ✓
 
-### Day 2 — Reconcile + Arus + Musim
-- [ ] Build `lib/finance/reconcile.ts` (token overlap scorer)
-- [ ] Implement `POST /api/reconcile`
-- [ ] Build `DuitTabs`, `TransactionList`, `DebtList`, `DebtRow`
-- [ ] Build `SimulateTransferButton` → reconcile → Supabase Realtime update → animate settled row
-- [ ] Build `SalaryHeader`, `BucketCard`, `BucketGrid`
-- [ ] Implement `POST /api/arus`
-- [ ] Build `BucketAnimator` (Framer Motion sequence: pulse → lines extend → fill bars animate)
-- [ ] Build `SimulateSalaryButton`
-- [ ] Define `constants/musim.ts` with 2026 dates
-- [ ] Implement `GET /api/musim` (pure calculation, no DB)
-- [ ] Build `MusimStrip`, `MusimEventCard`
-- [ ] **Day 2 gate:** Full demo steps 1–4 work in sequence ✓
+**Tech decisions made:**
+- Switched `@anthropic-ai/sdk` → `openai` (OpenRouter-compatible)
+- Switched Supabase JS client → Prisma 7 + `@prisma/adapter-pg`
+- LLM model IDs configurable via `LLM_NLP_MODEL` / `LLM_VISION_MODEL` env vars
+- `.env.example` documents all required variables
+
+### Day 2 — Wire Backend → UI
+- [ ] Connect `POST /api/parse-voice` to VoiceSheet → save transaction + debt_records to DB on confirm
+- [ ] Connect `POST /api/parse-receipt` to ReceiptSheet → save on confirm
+- [ ] Build `DuitTabs` — Transactions tab + Owes Me tab
+- [ ] `TransactionList` — fetch from DB, date-grouped rows
+- [ ] `DebtList` / `DebtRow` — fetch pending debts, live status
+- [ ] `SimulateTransferButton` → `POST /api/reconcile` → animate settled row
+- [ ] Connect `POST /api/arus` to Arus tab `SimulateSalaryButton` → `BucketAnimator`
+- [ ] Connect `GET /api/musim` to Home tab `MusimStrip`
+- [ ] `BalanceCard` — sum of bucket balances from DB
+- [ ] **Day 2 gate:** Demo steps 1–4 work end-to-end through real UI ✓
 
 ### Day 3 — Cermin + Kawan + Polish Pass 1
-- [ ] Build `lib/finance/projection.ts` (`buildSeries` function)
-- [ ] Build `ProjectionChart` (Recharts AreaChart, two Area lines, `animationDuration={300}`)
-- [ ] Build `SavingsSlider`, `SpendingSliders`, `ProjectionDelta`
-- [ ] Build `CerminHeader`
-- [ ] Build Kawan tab: `SquadHeader`, `LeaderboardList`, `LeaderboardRow`, `StreakBadge`
-- [ ] Build `ChallengeCard`, `SharedBucketCard` (static, pre-seeded)
-- [ ] Build `DemoUserProvider.tsx` — loads Amirah's data, exposes via context
-- [ ] Complete `TransactionFeed`, `TransactionRow` with category icon map
-- [ ] Run full demo path end-to-end → fix any crashes
+- [ ] `ProjectionChart` — Recharts AreaChart using `lib/finance/projection.ts`
+- [ ] `SavingsSlider` / `SpendingSliders` → real-time chart redraw
+- [ ] `ProjectionDelta` — RM difference callout
+- [ ] Kawan tab — leaderboard from `squad_streaks`, streak badges
+- [ ] `ChallengeCard`, `SharedBucketCard` (static pre-seeded)
+- [ ] `TransactionFeed` / `TransactionRow` with category icon map
+- [ ] Full demo path end-to-end without crash
 - [ ] **Day 3 gate:** All 5 tabs navigable, full demo completes without crash ✓
 
 ### Day 4 — Polish + Demo Hardening + Deploy
-- [ ] Audit every screen vs GXBank screenshots: radius, button sizes, font weights
+- [ ] Audit every screen: border radius, button sizes, font weights, tabular-nums
 - [ ] Add page transitions (`AnimatePresence` + `motion.div` opacity+y)
 - [ ] Verify 390px mobile viewport — fix any overflow
-- [ ] Add `tabular-nums` to all monetary values
 - [ ] Add loading skeletons to data-fetching screens
-- [ ] Build hidden "Demo Reset" button (swipe left on TabBar logo) — resets debts to pending, buckets to pre-salary
-- [ ] Test voice phrase "Paid RM85 at Nando's Midvalley for 4 people" 5× — adjust system prompt if needed
-- [ ] Pre-grant microphone permission in the demo browser before presenting
-- [ ] `vercel deploy --prod` → verify all API routes work in production
+- [ ] Demo Reset button → `DELETE /api/seed`
+- [ ] Test voice phrase 5× — tune system prompt if needed
+- [ ] Pre-grant microphone permission in demo browser
+- [ ] `vercel deploy --prod` → verify all API routes in production
 - [ ] Set all env vars in Vercel dashboard
 - [ ] Run full demo 3× timing each step
 - [ ] Record backup video of demo
@@ -386,13 +393,15 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 
 ## Implementation Gotchas
 
-- **Voice API browser support:** Chrome/Edge desktop, Safari iOS 16+. Add `window.SpeechRecognition` check on mount, show toast if unsupported. Demo in Chrome.
-- **Receipt image size:** Resize client-side with Canvas to max 1024px longest edge before base64 encoding. Cuts Sonnet latency from ~8s to ~3s.
-- **Haiku JSON fences:** Always strip ` ```json ``` ` before `JSON.parse`.
+- **Voice API browser support:** Chrome/Edge desktop, Safari iOS 16+. `useVoiceRecorder` checks on mount and returns `state: 'unsupported'`. Demo in Chrome.
+- **Receipt image size:** Canvas resize to max 1024px before base64 encode (in `app/test/page.tsx` and future ReceiptSheet). Cuts vision latency ~3×.
+- **LLM JSON fences:** `stripFences()` in both lib/claude files strips ` ```json ``` ` before `JSON.parse`.
+- **OpenRouter models:** Swap any model via `LLM_NLP_MODEL` / `LLM_VISION_MODEL` env vars — no code change needed.
 - **Arus number animation:** Use Framer Motion `useMotionValue` + `animate()`, not `innerHTML`. Format with `toLocaleString('en-MY')`.
-- **Musim dates:** Hardcode 2026 values. Update `constants/musim.ts` the morning of the demo if date math drifts.
-- **Supabase Realtime on debt rows:** Subscribe to `debt_records` changes in `DebtRow.tsx`. Status change → green flash animation without page refresh.
-- **For demo receipt:** Pre-photograph a real Malaysian receipt (KFC/McDonald's). Know exactly what it extracts. Never OCR a receipt live during pitch.
+- **Musim dates:** Hari Raya 2026-03-30 is now past — update seed date or add 2027 Raya before demo if needed.
+- **Prisma singleton:** `lib/db.ts` uses `globalForPrisma` pattern to avoid connection exhaustion in Next.js dev hot-reload.
+- **Demo receipt:** `/Users/choijs/Downloads/receipt.jpeg` confirmed working — use this or any similar Malaysian restaurant receipt.
+- **Demo reset:** `DELETE /api/seed` resets debt statuses + bucket balances without wiping transaction history.
 
 ---
 
