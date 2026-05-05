@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  income    Decimal  @default(0) @db.Decimal(10, 2)
+  salaryDay Int?
+  squadId   String?
+  createdAt DateTime @default(now())
+
+  transactions   Transaction[]
+  debtRecords    DebtRecord[]
+  buckets        Bucket[]
+  musimEvents    MusimEvent[]
+  squadMember    SquadMember[]
+  squadStreaks    SquadStreak[]
+  sharedBucketMembers SharedBucketMember[]
+
+  @@map("users")
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Decimal  @db.Decimal(10, 2)
+  category  String   @default("Uncategorized")
+  merchant  String?
+  date      DateTime @default(now()) @db.Date
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debtRecords DebtRecord[]
+
+  @@index([userId, date(sort: Desc)])
+  @@map("transactions")
+}
+
+model DebtRecord {
+  id            String    @id @default(uuid())
+  creditorId    String
+  debtorName    String
+  amount        Decimal   @db.Decimal(10, 2)
+  context       String?
+  transactionId String?
+  status        String    @default("pending")
+  settledAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  creditor    User         @relation(fields: [creditorId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([creditorId, status])
+  @@map("debt_records")
+}
+
+model Bucket {
+  id         String   @id @default(uuid())
+  userId     String
+  name       String
+  percentage Int
+  balance    Decimal  @default(0) @db.Decimal(10, 2)
+  type       String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("buckets")
+}
+
+model MusimEvent {
+  id            String   @id @default(uuid())
+  userId        String
+  eventName     String
+  eventDate     DateTime @db.Date
+  estimatedCost Decimal  @db.Decimal(10, 2)
+  category      String   @default("festive")
+  isSystem      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("musim_events")
+}
+
+model Squad {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members       SquadMember[]
+  streaks       SquadStreak[]
+  sharedBuckets SharedBucket[]
+
+  @@map("squad")
+}
+
+model SquadMember {
+  squadId String
+  userId  String
+
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([squadId, userId])
+  @@map("squad_members")
+}
+
+model SquadStreak {
+  id            String    @id @default(uuid())
+  userId        String
+  squadId       String
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastActive    DateTime? @db.Date
+  savingsRate   Decimal   @default(0) @db.Decimal(5, 2)
+  updatedAt     DateTime  @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+
+  @@map("squad_streaks")
+}
+
+model SharedBucket {
+  id           String   @id @default(uuid())
+  squadId      String
+  name         String
+  balance      Decimal  @default(0) @db.Decimal(10, 2)
+  targetAmount Decimal? @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+
+  squad   Squad                @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  members SharedBucketMember[]
+
+  @@map("shared_buckets")
+}
+
+model SharedBucketMember {
+  bucketId     String
+  userId       String
+  contribution Decimal @default(0) @db.Decimal(10, 2)
+
+  bucket SharedBucket @relation(fields: [bucketId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([bucketId, userId])
+  @@map("shared_bucket_members")
+}
