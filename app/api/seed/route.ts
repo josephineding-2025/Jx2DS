@@ -4,10 +4,17 @@ import { prisma } from '@/lib/db'
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
 const DEMO_SQUAD_ID = '00000000-0000-0000-0000-000000000010'
 const DEMO_SHARED_BUCKET_ID = '00000000-0000-0000-0000-000000000020'
+const DEMO_CHALLENGE_ID = '00000000-0000-0000-0000-000000000030'
 
 export async function POST() {
   try {
-    // Reset all demo data
+    const today = new Date()
+    const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d }
+    const startOfWeek = daysAgo(4) // challenge started 4 days ago
+
+    // Reset all demo data (order matters for FK constraints)
+    await prisma.challengeCompletion.deleteMany({ where: { challengeId: DEMO_CHALLENGE_ID } })
+    await prisma.challenge.deleteMany({ where: { id: DEMO_CHALLENGE_ID } })
     await prisma.sharedBucketMember.deleteMany({ where: { bucketId: DEMO_SHARED_BUCKET_ID } })
     await prisma.sharedBucket.deleteMany({ where: { id: DEMO_SHARED_BUCKET_ID } })
     await prisma.squadStreak.deleteMany({ where: { squadId: DEMO_SQUAD_ID } })
@@ -16,11 +23,8 @@ export async function POST() {
     await prisma.debtRecord.deleteMany({ where: { creditorId: DEMO_USER_ID } })
     await prisma.bucket.deleteMany({ where: { userId: DEMO_USER_ID } })
     await prisma.musimEvent.deleteMany({ where: { userId: DEMO_USER_ID } })
-    await prisma.transaction.deleteMany({ where: { userId: DEMO_USER_ID } })
+    await prisma.transaction.deleteMany({ where: { userId: { in: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'] } } })
     await prisma.user.deleteMany({ where: { id: { in: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'] } } })
-
-    const today = new Date()
-    const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d }
 
     await prisma.user.createMany({
       data: [
@@ -65,9 +69,9 @@ export async function POST() {
 
     await prisma.debtRecord.createMany({
       data: [
-        { creditorId: DEMO_USER_ID, debtorName: 'Ali', amount: 21.25, context: "Nando's Midvalley", status: 'pending' },
-        { creditorId: DEMO_USER_ID, debtorName: 'Siti', amount: 21.25, context: "Nando's Midvalley", status: 'pending' },
-        { creditorId: DEMO_USER_ID, debtorName: 'Hana', amount: 21.25, context: "Nando's Midvalley", status: 'pending' },
+        { creditorId: DEMO_USER_ID, debtorName: 'Ali', amount: 21.25, context: "Nando's Midvalley", status: 'pending', direction: 'owe_me' },
+        { creditorId: DEMO_USER_ID, debtorName: 'Siti', amount: 21.25, context: "Nando's Midvalley", status: 'pending', direction: 'owe_me' },
+        { creditorId: DEMO_USER_ID, debtorName: 'Hana', amount: 21.25, context: "Nando's Midvalley", status: 'pending', direction: 'owe_me' },
       ],
     })
 
@@ -83,7 +87,7 @@ export async function POST() {
 
     await prisma.musimEvent.createMany({
       data: [
-        { userId: DEMO_USER_ID, eventName: 'Hari Raya Aidilfitri', eventDate: new Date('2026-03-30'), estimatedCost: 500, category: 'festive', isSystem: true },
+        { userId: DEMO_USER_ID, eventName: 'Hari Raya Aidilfitri', eventDate: new Date('2027-03-10'), estimatedCost: 500, category: 'festive', isSystem: true },
         { userId: DEMO_USER_ID, eventName: 'Semester Fees (July)', eventDate: new Date('2026-07-01'), estimatedCost: 1800, category: 'education', isSystem: true },
         { userId: DEMO_USER_ID, eventName: 'PTPTN Annual Review', eventDate: new Date('2026-09-01'), estimatedCost: 200, category: 'debt', isSystem: true },
         { userId: DEMO_USER_ID, eventName: 'Year-End Festive', eventDate: new Date('2026-12-15'), estimatedCost: 400, category: 'festive', isSystem: true },
@@ -103,6 +107,28 @@ export async function POST() {
       },
     })
 
+    // Challenge: "No Bubble Tea Week" — started 4 days ago, runs 7 days
+    await prisma.challenge.create({
+      data: {
+        id: DEMO_CHALLENGE_ID,
+        squadId: DEMO_SQUAD_ID,
+        name: 'No Bubble Tea Week',
+        description: 'Skip boba, pool the savings',
+        startDate: startOfWeek,
+        endDate: daysAgo(-2), // ends in 2 days
+        penaltyAmount: 5,
+        completions: {
+          create: [
+            // Amirah completed days 0-3, today (day 4) is pending
+            { userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
+            { userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
+            { userId: DEMO_USER_ID, date: daysAgo(2), completed: true },
+            { userId: DEMO_USER_ID, date: daysAgo(1), completed: true },
+          ],
+        },
+      },
+    })
+
     return NextResponse.json({ ok: true, message: 'Demo data seeded successfully' })
   } catch (err) {
     console.error('[seed]', err)
@@ -110,9 +136,13 @@ export async function POST() {
   }
 }
 
-// Reset just the demo-sensitive state (debts + buckets) without wiping transactions
+// Reset just the demo-sensitive state without wiping transactions
 export async function DELETE() {
   try {
+    const DEMO_CHALLENGE_ID = '00000000-0000-0000-0000-000000000030'
+    const today = new Date()
+    const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d }
+
     await prisma.debtRecord.updateMany({
       where: { creditorId: DEMO_USER_ID },
       data: { status: 'pending', settledAt: null },
@@ -128,6 +158,20 @@ export async function DELETE() {
     await prisma.bucket.updateMany({
       where: { userId: DEMO_USER_ID, type: 'flex' },
       data: { balance: 680 },
+    })
+    await prisma.sharedBucket.updateMany({
+      where: { id: DEMO_SHARED_BUCKET_ID },
+      data: { balance: 1350 },
+    })
+    // Reset challenge completions to initial 4 completed days
+    await prisma.challengeCompletion.deleteMany({ where: { challengeId: DEMO_CHALLENGE_ID } })
+    await prisma.challengeCompletion.createMany({
+      data: [
+        { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
+        { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
+        { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(2), completed: true },
+        { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(1), completed: true },
+      ],
     })
     return NextResponse.json({ ok: true, message: 'Demo state reset' })
   } catch (err) {

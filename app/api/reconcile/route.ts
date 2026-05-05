@@ -28,16 +28,28 @@ export async function POST(req: NextRequest) {
     }
 
     const delta = match.delta
-    const newStatus = Math.abs(delta) <= 0.01 ? 'settled' : delta < 0 ? 'partial' : 'settled'
+    const tolerance = Math.max(1, match.amount * 0.1)
+    const newStatus = amount >= match.amount - tolerance ? 'settled' : 'partial'
 
-    await prisma.debtRecord.update({
-      where: { id: match.id },
-      data: {
-        status: newStatus,
-        settledAt: newStatus === 'settled' ? new Date() : null,
-        ...(newStatus === 'partial' && { amount: { decrement: amount } }),
-      },
-    })
+    await prisma.$transaction([
+      prisma.debtRecord.update({
+        where: { id: match.id },
+        data: {
+          status: newStatus,
+          settledAt: newStatus === 'settled' ? new Date() : null,
+          ...(newStatus === 'partial' && { amount: { decrement: amount } }),
+        },
+      }),
+      prisma.transaction.create({
+        data: {
+          userId,
+          amount,
+          category: 'Transfer',
+          merchant: match.debtorName,
+          source: 'transfer',
+        },
+      }),
+    ])
 
     return NextResponse.json({
       matched: true,

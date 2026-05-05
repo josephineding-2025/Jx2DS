@@ -6,10 +6,11 @@ export interface MusimCalc {
   daysRemaining: number
   dailyTarget: number
   category: string
+  autoSaveEnabled: boolean
 }
 
 export function calcMusimEvents(
-  events: { id: string; eventName: string; eventDate: Date; estimatedCost: number; category: string }[],
+  events: { id: string; eventName: string; eventDate: Date; estimatedCost: number; category: string; autoSaveEnabled?: boolean }[],
   fromDate: Date = new Date()
 ): MusimCalc[] {
   return events
@@ -25,6 +26,7 @@ export function calcMusimEvents(
         daysRemaining,
         dailyTarget: Math.round(dailyTarget * 100) / 100,
         category: e.category,
+        autoSaveEnabled: e.autoSaveEnabled ?? false,
       }
     })
     .filter(e => e.daysRemaining > 0)

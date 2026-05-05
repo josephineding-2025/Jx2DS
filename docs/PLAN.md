@@ -10,11 +10,12 @@ PRD: `/Users/choijs/projects/Kira/docs/PRD.md`
 ## Architectural Decisions
 
 1. **No real auth** — `DemoUserProvider` hardcodes Amirah's UUID. Every query uses this fixed ID.
-2. **API routes for all LLM calls** — `ANTHROPIC_API_KEY` is server-side only, never `NEXT_PUBLIC_`.
+2. **API routes for all LLM calls** — `OPENROUTER_API_KEY` is server-side only, never `NEXT_PUBLIC_`.
 3. **Real Supabase persistence** — voice/receipt writes real rows. Demo data persists across refreshes.
-4. **Framer Motion for all animations** — no CSS transitions. `AnimatePresence` for list mutations.
+4. **Tailwind-first UI** — production UI is implemented with Tailwind utilities; global CSS is limited to app background, scrollbar hiding, and custom keyframes.
 5. **Recharts over D3** — declarative API, 10x faster to build Cermin chart.
 6. **Haiku for NLP, Sonnet for Vision** — cost/speed optimized per feature.
+7. **Mobile-first web app shell** — no fake phone chrome/status bar; content is full viewport on mobile and max-width constrained on desktop.
 
 ---
 
@@ -23,87 +24,32 @@ PRD: `/Users/choijs/projects/Kira/docs/PRD.md`
 ```
 Kira/
 ├── app/
-│   ├── layout.tsx                  # Root layout: fonts, providers
-│   ├── globals.css
-│   ├── (shell)/                    # Route group: tab shell
-│   │   ├── layout.tsx              # DemoUserProvider + TabBar
-│   │   ├── home/page.tsx
-│   │   ├── duit/page.tsx
-│   │   ├── arus/page.tsx
-│   │   ├── kawan/page.tsx
-│   │   └── cermin/page.tsx
+│   ├── layout.tsx                  # Root layout + metadata
+│   ├── globals.css                 # Tailwind import + small global helpers
+│   ├── page.tsx                    # Server-loads demo state, renders KiraApp
 │   └── api/
 │       ├── parse-voice/route.ts    # Claude Haiku NLP
 │       ├── parse-receipt/route.ts  # Claude Sonnet Vision
+│       ├── transactions/route.ts   # Persist parsed expense + debt records
+│       ├── demo-state/route.ts     # One-shot UI data loader
 │       ├── reconcile/route.ts      # Fuzzy debt matching
 │       ├── arus/route.ts           # Bucket allocation
 │       └── musim/route.ts          # Event savings calc
 ├── components/
-│   ├── ui/                         # shadcn primitives
-│   ├── layout/
-│   │   ├── TabBar.tsx
-│   │   ├── GradientHeader.tsx      # Purple→magenta hero, reused everywhere
-│   │   └── PageShell.tsx
-│   ├── home/
-│   │   ├── BalanceCard.tsx
-│   │   ├── QuickActions.tsx        # 3 purple circles: Voice/Receipt/Request
-│   │   ├── MusimStrip.tsx
-│   │   ├── MusimEventCard.tsx
-│   │   ├── TransactionFeed.tsx
-│   │   └── TransactionRow.tsx
-│   ├── voice/
-│   │   ├── VoiceSheet.tsx
-│   │   ├── VoiceWaveform.tsx       # Animated bars
-│   │   ├── VoiceTranscript.tsx
-│   │   └── VoiceConfirm.tsx
-│   ├── receipt/
-│   │   ├── ReceiptSheet.tsx
-│   │   ├── ReceiptPreview.tsx
-│   │   └── ReceiptConfirm.tsx
-│   ├── duit/
-│   │   ├── DuitTabs.tsx
-│   │   ├── TransactionList.tsx
-│   │   ├── DebtList.tsx
-│   │   ├── DebtRow.tsx
-│   │   └── SimulateTransferButton.tsx
-│   ├── arus/
-│   │   ├── SalaryHeader.tsx
-│   │   ├── BucketGrid.tsx
-│   │   ├── BucketCard.tsx
-│   │   ├── BucketAnimator.tsx      # Most complex Framer Motion orchestration
-│   │   └── SimulateSalaryButton.tsx
-│   ├── kawan/
-│   │   ├── SquadHeader.tsx
-│   │   ├── LeaderboardList.tsx
-│   │   ├── LeaderboardRow.tsx
-│   │   ├── ChallengeCard.tsx
-│   │   ├── SharedBucketCard.tsx
-│   │   └── StreakBadge.tsx
-│   └── cermin/
-│       ├── CerminHeader.tsx
-│       ├── ProjectionChart.tsx     # Recharts dual-line area chart
-│       ├── SavingsSlider.tsx
-│       ├── SpendingSliders.tsx
-│       └── ProjectionDelta.tsx
+│   └── kira/KiraApp.tsx            # Tailwind-first app shell + all demo screens
 ├── lib/
-│   ├── supabase/client.ts
-│   ├── supabase/server.ts
-│   ├── supabase/types.ts
+│   ├── db.ts                       # Prisma 7 singleton
 │   ├── claude/haiku.ts
 │   ├── claude/sonnet.ts
 │   ├── finance/projection.ts       # FV = PV × (1+r)^n
 │   ├── finance/reconcile.ts        # Token overlap fuzzy match
 │   ├── finance/musim.ts
-│   └── demo/seed.ts                # Amirah UUID + squad UUID constants
+│   └── demo/
+│       ├── seed.ts                 # Amirah UUID + squad UUID constants
+│       └── state.ts                # Aggregated UI state query
 ├── hooks/
-│   ├── useVoiceRecorder.ts         # Web Speech API abstraction
-│   ├── useProjection.ts
-│   └── useDemoUser.ts
+│   └── useVoiceRecorder.ts         # Web Speech API abstraction
 ├── providers/DemoUserProvider.tsx
-├── constants/
-│   ├── musim.ts                    # Hardcoded 2026 Malaysian events
-│   ├── categories.ts
-│   └── squad.ts                    # Pre-seeded leaderboard data
 └── types/index.ts
 ```
 
@@ -271,9 +217,11 @@ insert into shared_bucket_members (bucket_id, user_id, contribution) values
 |---|---|---|---|
 | `POST /api/parse-voice` | `{ transcript: string }` | Normalized transaction JSON | Haiku |
 | `POST /api/parse-receipt` | `{ imageBase64, mimeType }` | Normalized transaction JSON | Sonnet Vision |
-| `POST /api/reconcile` | `{ senderName, amount, userId }` | `{ matched, debt_record_id, context, delta }` | None |
-| `POST /api/arus` | `{ userId, amount }` | `{ allocations: [{bucket, percentage, amount}] }` | None |
-| `GET /api/musim` | `?userId&from` | `{ events: [{event_name, days_remaining, daily_target}] }` | None |
+| `POST /api/transactions` | `{ userId, source, expense }` | Saved transaction + debt records | None |
+| `GET /api/demo-state` | `?userId&squadId` | Aggregated user, txns, debts, buckets, musim, squad | None |
+| `POST /api/reconcile` | `{ senderName, amount, userId }` | `{ matched, debtRecordId, debtorName, context, delta, remainingBalance }` | None |
+| `POST /api/arus` | `{ userId, amount }` | `{ allocations: [{bucketId, bucketName, type, percentage, amount, newBalance}] }` | None |
+| `GET /api/musim` | `?userId&from` | `{ events: [{eventName, daysRemaining, dailyTarget}] }` | None |
 
 **Haiku system prompt (exact):**
 ```
@@ -312,10 +260,11 @@ function buildSeries(monthlyContrib: number, currentSavings: number) {
 
 ```bash
 # .env.local
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...          # safe for browser
-SUPABASE_SERVICE_ROLE_KEY=eyJ...              # server only
-ANTHROPIC_API_KEY=sk-ant-api03-...            # server only — NEVER NEXT_PUBLIC_
+DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres"
+OPENROUTER_API_KEY="sk-or-v1-..."             # server only — NEVER NEXT_PUBLIC_
+LLM_NLP_MODEL="anthropic/claude-haiku-4-5"
+LLM_VISION_MODEL="anthropic/claude-sonnet-4-6"
 NEXT_PUBLIC_DEMO_USER_ID=00000000-0000-0000-0000-000000000001
 NEXT_PUBLIC_DEMO_SQUAD_ID=00000000-0000-0000-0000-000000000010
 NEXT_PUBLIC_APP_URL=https://kira.vercel.app
@@ -324,6 +273,62 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 ---
 
 ## Day-by-Day Checklist
+
+### Status Update — 2026-05-05 (Session 1)
+- [x] Migrated `docs/kira-ui` mock into real Next/React UI at `components/kira/KiraApp.tsx`
+- [x] Converted implementation to Tailwind-first styling; `app/globals.css` now only holds Tailwind import, global background, scrollbar helper, and keyframes
+- [x] Removed mock phone chrome/status bar; app is now mobile-first web UI with max-width desktop constraint
+- [x] Added `GET /api/demo-state` for aggregated UI data
+- [x] Added `POST /api/transactions` to persist confirmed parsed voice/receipt expenses and debt records
+- [x] Updated reconcile to create a transfer transaction and settle demo-tolerant matches such as Ali RM21 vs RM21.25
+- [x] Updated seed Hari Raya date from past 2026 event to 2027-03-10
+- [x] Fixed Web Speech API TypeScript definitions
+- [x] Ignored standalone `docs/kira-ui` Babel mock files in ESLint
+- [x] Removed `next/font` Google fetch dependency so builds do not need network access
+- [x] Verification passed: `pnpm lint`, `pnpm exec tsc --noEmit --pretty false`, `pnpm build`
+
+### Status Update — 2026-05-05 (Session 2 — Full Fix Pass)
+
+**Schema & Migration**
+- [x] Added `notes String?` to `Transaction` model
+- [x] Added `direction String @default("owe_me")` to `DebtRecord` model
+- [x] Added `autoSaveEnabled Boolean @default(false)` to `MusimEvent` model
+- [x] Added `Challenge` model with `id, squadId, name, description, startDate, endDate, penaltyAmount, createdAt`
+- [x] Added `ChallengeCompletion` model with composite PK `(challengeId, userId, date)` and `completed Boolean`
+- [x] Migration applied: `20260505085844_add_challenges_notes_direction`
+
+**Types**
+- [x] `types/index.ts` updated: `notes` on Transaction, `direction` on DebtRecord, `autoSaveEnabled` on MusimEvent, `Challenge` and `ChallengeCompletion` interfaces added
+
+**Seed**
+- [x] `POST /api/seed`: seeds 1 Challenge ("No Bubble Tea Week", 7-day, penaltyAmount RM5) + 4 completed ChallengeCompletion rows (days −4 to −1)
+- [x] `DELETE /api/seed`: resets sharedBucket balance + challenge completions back to initial state
+- [x] Debt seed rows now explicitly include `direction: "owe_me"`
+
+**Data Layer**
+- [x] `lib/demo/state.ts`: parallel query for active challenge with nested completions; `direction` on debts; `autoSaveEnabled` on musim events; `challenge` added to return shape
+- [x] `lib/finance/musim.ts`: `autoSaveEnabled` threaded through `MusimCalc` interface
+
+**New API Routes**
+- [x] `POST /api/transactions`: now persists `notes` field
+- [x] `POST /api/kawan`: upserts ChallengeCompletion as broken, increments SharedBucket.balance by penaltyAmount
+- [x] `POST /api/musim/toggle`: updates `autoSaveEnabled` on a MusimEvent
+- [x] `POST /api/shared-bucket/contribute`: increments SharedBucketMember.contribution + SharedBucket.balance
+
+**KiraApp.tsx — Full Rewrite (~1800 lines)**
+- [x] `greeting()` helper: Good morning / afternoon / evening based on hour
+- [x] HomeScreen: savings rate from `bucket.percentage`, computed weekly delta, request button wired to sheet
+- [x] DuitScreen: 3-segment control (Transactions / Owes Me / I Owe), reconcile form with name+amount inputs + "Demo: Ali RM21" prefill, escrow concept card, I Owe filters `direction === "i_owe"`
+- [x] ArusScreen: dynamic salary display from `data.user.income`, pre-authorised payments section (PTPTN + Celcom static cards)
+- [x] KawanScreen: challenge wired from DB — day tracker circles, "I broke it today" penalty button, Contribute is a real button opening ContributeSheet
+- [x] CerminScreen: all three slider defaults changed from `(200, 150, 80)` → `(0, 0, 0)` so chart starts with identical lines
+- [x] BucketCard: `AnimatedProgress` component (Framer Motion spring), fill formula uses `balance / (income × percentage/100)`
+- [x] MusimCard: removed broken progress bar, added auto-save toggle (calls `/api/musim/toggle`)
+- [x] ParsedExpenseCard: amount, merchant, and debt amounts are all inline-editable
+- [x] Segmented: dynamic `gridTemplateColumns` — no longer hardcoded to 2 columns
+- [x] New `RequestSheet` component (mock payment request flow)
+- [x] New `ContributeSheet` component (preset RM50/100/200 + custom amount)
+- [x] Verification passed: `pnpm exec tsc --noEmit` (zero errors), `pnpm lint` (zero warnings)
 
 ### Day 1 — Scaffold + Backend ✅ COMPLETE
 - [x] Scaffold Next.js 16 with pnpm, TypeScript, Tailwind, App Router
@@ -353,41 +358,50 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 - LLM model IDs configurable via `LLM_NLP_MODEL` / `LLM_VISION_MODEL` env vars
 - `.env.example` documents all required variables
 
-### Day 2 — Wire Backend → UI
-- [ ] Connect `POST /api/parse-voice` to VoiceSheet → save transaction + debt_records to DB on confirm
-- [ ] Connect `POST /api/parse-receipt` to ReceiptSheet → save on confirm
-- [ ] Build `DuitTabs` — Transactions tab + Owes Me tab
-- [ ] `TransactionList` — fetch from DB, date-grouped rows
-- [ ] `DebtList` / `DebtRow` — fetch pending debts, live status
-- [ ] `SimulateTransferButton` → `POST /api/reconcile` → animate settled row
-- [ ] Connect `POST /api/arus` to Arus tab `SimulateSalaryButton` → `BucketAnimator`
-- [ ] Connect `GET /api/musim` to Home tab `MusimStrip`
-- [ ] `BalanceCard` — sum of bucket balances from DB
-- [ ] **Day 2 gate:** Demo steps 1–4 work end-to-end through real UI ✓
+### Day 2 — Wire Backend → UI ✅ COMPLETE
+- [x] Connect `POST /api/parse-voice` to VoiceSheet → save transaction + debt_records to DB on confirm
+- [x] Connect `POST /api/parse-receipt` to ReceiptSheet → save on confirm
+- [x] Build `DuitTabs` — Transactions tab + Owes Me tab
+- [x] `TransactionList` — fetch from DB, date-grouped rows
+- [x] `DebtList` / `DebtRow` — fetch pending debts, live status
+- [x] `SimulateTransferButton` → `POST /api/reconcile` → refresh settled row
+- [x] Connect `POST /api/arus` to Arus tab `SimulateSalaryButton` → bucket updates
+- [x] Connect Musim data to Home tab `MusimStrip` via `GET /api/demo-state`
+- [x] `BalanceCard` — sum of bucket balances from DB
+- [x] **Day 2 gate:** Demo steps 1–4 are wired through real UI and Prisma-backed routes ✓
 
-### Day 3 — Cermin + Kawan + Polish Pass 1
-- [ ] `ProjectionChart` — Recharts AreaChart using `lib/finance/projection.ts`
-- [ ] `SavingsSlider` / `SpendingSliders` → real-time chart redraw
-- [ ] `ProjectionDelta` — RM difference callout
-- [ ] Kawan tab — leaderboard from `squad_streaks`, streak badges
-- [ ] `ChallengeCard`, `SharedBucketCard` (static pre-seeded)
-- [ ] `TransactionFeed` / `TransactionRow` with category icon map
-- [ ] Full demo path end-to-end without crash
-- [ ] **Day 3 gate:** All 5 tabs navigable, full demo completes without crash ✓
+### Day 3 — Cermin + Kawan + Polish Pass 1 ✅ COMPLETE
+- [x] `ProjectionChart` — Recharts AreaChart using `lib/finance/projection.ts`
+- [x] `SavingsSlider` / `SpendingSliders` → real-time chart redraw
+- [x] `ProjectionDelta` — RM difference callout
+- [x] Kawan tab — leaderboard from `squad_streaks`, streak badges
+- [x] `ChallengeCard` wired to DB — day tracker, penalty button, contribute sheet
+- [x] `SharedBucketCard` with real contribute flow (`POST /api/shared-bucket/contribute`)
+- [x] `TransactionFeed` / `TransactionRow` with category icon map
+- [x] All 5 tabs navigable in the real app shell
+- [x] Bidirectional debt: "I Owe" segment added to Duit tab
+- [x] Cermin slider defaults fixed — chart starts with identical lines
+- [x] Animated bucket progress bars (Framer Motion spring)
+- [x] ParsedExpenseCard inline editing (amount, merchant, debt splits)
+- [ ] Full timed demo rehearsal end-to-end without crash
+- [ ] **Day 3 gate:** Full demo completes without crash in a rehearsed run
 
 ### Day 4 — Polish + Demo Hardening + Deploy
-- [ ] Audit every screen: border radius, button sizes, font weights, tabular-nums
-- [ ] Add page transitions (`AnimatePresence` + `motion.div` opacity+y)
+- [x] Audit primary screen styling: border radius, button sizes, font weights, tabular-nums
+- [x] Add page transitions (`AnimatePresence` + `motion.div` opacity+y)
+- [x] Remove mock phone chrome/status bar for true mobile-first web layout
+- [x] Demo Reset button → `DELETE /api/seed`
+- [x] Production build passes locally
+- [ ] Seed the demo: `POST /api/seed` → verify challenge rows created correctly
+- [ ] Run full demo path end-to-end (6 steps) — verify no crash
 - [ ] Verify 390px mobile viewport — fix any overflow
-- [ ] Add loading skeletons to data-fetching screens
-- [ ] Demo Reset button → `DELETE /api/seed`
 - [ ] Test voice phrase 5× — tune system prompt if needed
 - [ ] Pre-grant microphone permission in demo browser
 - [ ] `vercel deploy --prod` → verify all API routes in production
 - [ ] Set all env vars in Vercel dashboard
 - [ ] Run full demo 3× timing each step
 - [ ] Record backup video of demo
-- [ ] **Day 4 gate:** Demo runs in <90s, deployed, backup recording exists ✓
+- [ ] **Day 4 gate:** Demo runs in <90s, deployed, backup recording exists
 
 ---
 
@@ -398,8 +412,13 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 - **LLM JSON fences:** `stripFences()` in both lib/claude files strips ` ```json ``` ` before `JSON.parse`.
 - **OpenRouter models:** Swap any model via `LLM_NLP_MODEL` / `LLM_VISION_MODEL` env vars — no code change needed.
 - **Arus number animation:** Use Framer Motion `useMotionValue` + `animate()`, not `innerHTML`. Format with `toLocaleString('en-MY')`.
-- **Musim dates:** Hari Raya 2026-03-30 is now past — update seed date or add 2027 Raya before demo if needed.
-- **Prisma singleton:** `lib/db.ts` uses `globalForPrisma` pattern to avoid connection exhaustion in Next.js dev hot-reload.
+- **Musim dates:** Hari Raya seed is now `2027-03-10`; keep checking dates before final demo because seasonal events are time-sensitive.
+- **Prisma singleton:** `lib/db.ts` reuses `globalForPrisma.prisma` to avoid connection exhaustion in Next.js dev hot-reload.
+- **UI state loading:** Real UI uses `GET /api/demo-state` as a single aggregated data source, then refreshes after mutations.
+- **Persisting parsed expenses:** `POST /api/parse-voice` and `POST /api/parse-receipt` only parse; `POST /api/transactions` persists confirmed expenses and debt rows.
+- **Standalone prototype:** `docs/kira-ui/**` remains as source reference only and is ignored by ESLint.
+- **Build networking:** `next/font` was removed so local builds do not need to fetch Google Fonts.
+- **Turbopack sandbox:** `pnpm build` may need permission to run the Next/Turbopack helper process in this environment.
 - **Demo receipt:** `/Users/choijs/Downloads/receipt.jpeg` confirmed working — use this or any similar Malaysian restaurant receipt.
 - **Demo reset:** `DELETE /api/seed` resets debt statuses + bucket balances without wiping transaction history.
 
@@ -418,8 +437,28 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 3. Home tab → SimulateSalaryButton → RM2,800
    Expected: BucketAnimator fires → Savings fills cyan (RM560), Bills purple (RM840), Flex amber (RM1,400)
 
-4. Home tab → Musim strip shows "Hari Raya in 58 days — RM8.62/day"
+4. Home tab → Musim strip shows upcoming events from `/api/demo-state`
+   Expected: Hari Raya 2027 / semester / PTPTN cards show positive day counts and daily targets
 
 5. Cermin tab → drag savings slider +RM200 → chart redraws → RM4,200 jumps to RM28,600
    Kawan tab → Amirah shows Day 15 streak, ranked in leaderboard
+```
+
+## Latest Verification — 2026-05-05 (Session 2)
+
+```bash
+pnpm exec tsc --noEmit --pretty false         # pass — zero type errors after full KiraApp rewrite
+pnpm lint                                      # pass — zero errors, zero warnings
+```
+
+**Pending verification (do before deploy):**
+```
+POST /api/seed                                 # seed challenge + completions
+GET  /api/demo-state?userId=...&squadId=...   # check challenge field present
+Demo step 1: voice → parse → save → Duit tab
+Demo step 2: reconcile form → enter Ali RM21 → row goes green
+Demo step 3: Arus → simulate salary → buckets animate
+Demo step 4: Home → Musim strip shows positive day counts
+Demo step 5: Cermin → sliders from 0 → chart gap opens
+Demo step 6: Kawan → challenge day tracker, penalty button
 ```

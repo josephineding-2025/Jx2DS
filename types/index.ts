@@ -8,6 +8,7 @@ export interface ParsedExpense {
   per_person: number
   debt_records: { name: string; amount: number }[]
   confidence: number
+  notes?: string
 }
 
 export interface Transaction {
@@ -18,6 +19,7 @@ export interface Transaction {
   merchant: string | null
   date: string
   source: string
+  notes: string | null
   createdAt: string
 }
 
@@ -29,6 +31,7 @@ export interface DebtRecord {
   context: string | null
   transactionId: string | null
   status: 'pending' | 'settled' | 'partial'
+  direction: 'owe_me' | 'i_owe'
   settledAt: string | null
   createdAt: string
 }
@@ -50,6 +53,7 @@ export interface MusimEvent {
   estimatedCost: number
   category: string
   isSystem: boolean
+  autoSaveEnabled: boolean
 }
 
 export interface SquadMember {
@@ -75,4 +79,22 @@ export interface ArusAllocation {
   percentage: number
   amount: number
   newBalance: number
+}
+
+export interface Challenge {
+  id: string
+  squadId: string
+  name: string
+  description: string | null
+  startDate: string
+  endDate: string
+  penaltyAmount: number
+  completions: ChallengeCompletion[]
+}
+
+export interface ChallengeCompletion {
+  challengeId: string
+  userId: string
+  date: string
+  completed: boolean
 }

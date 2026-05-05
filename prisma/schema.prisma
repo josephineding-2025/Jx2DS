@@ -16,13 +16,14 @@ model User {
   squadId   String?
   createdAt DateTime @default(now())
 
-  transactions   Transaction[]
-  debtRecords    DebtRecord[]
-  buckets        Bucket[]
-  musimEvents    MusimEvent[]
-  squadMember    SquadMember[]
-  squadStreaks    SquadStreak[]
-  sharedBucketMembers SharedBucketMember[]
+  transactions          Transaction[]
+  debtRecords           DebtRecord[]
+  buckets               Bucket[]
+  musimEvents           MusimEvent[]
+  squadMember           SquadMember[]
+  squadStreaks           SquadStreak[]
+  sharedBucketMembers   SharedBucketMember[]
+  challengeCompletions  ChallengeCompletion[]
 
   @@map("users")
 }
@@ -35,6 +36,7 @@ model Transaction {
   merchant  String?
   date      DateTime @default(now()) @db.Date
   source    String   @default("manual")
+  notes     String?
   createdAt DateTime @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -52,6 +54,7 @@ model DebtRecord {
   context       String?
   transactionId String?
   status        String    @default("pending")
+  direction     String    @default("owe_me")
   settledAt     DateTime?
   createdAt     DateTime  @default(now())
 
@@ -77,14 +80,15 @@ model Bucket {
 }
 
 model MusimEvent {
-  id            String   @id @default(uuid())
-  userId        String
-  eventName     String
-  eventDate     DateTime @db.Date
-  estimatedCost Decimal  @db.Decimal(10, 2)
-  category      String   @default("festive")
-  isSystem      Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id               String   @id @default(uuid())
+  userId           String
+  eventName        String
+  eventDate        DateTime @db.Date
+  estimatedCost    Decimal  @db.Decimal(10, 2)
+  category         String   @default("festive")
+  isSystem         Boolean  @default(false)
+  autoSaveEnabled  Boolean  @default(false)
+  createdAt        DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -99,6 +103,7 @@ model Squad {
   members       SquadMember[]
   streaks       SquadStreak[]
   sharedBuckets SharedBucket[]
+  challenges    Challenge[]
 
   @@map("squad")
 }
@@ -154,4 +159,33 @@ model SharedBucketMember {
 
   @@id([bucketId, userId])
   @@map("shared_bucket_members")
+}
+
+model Challenge {
+  id            String   @id @default(uuid())
+  squadId       String
+  name          String
+  description   String?
+  startDate     DateTime @db.Date
+  endDate       DateTime @db.Date
+  penaltyAmount Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+
+  squad       Squad                 @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  completions ChallengeCompletion[]
+
+  @@map("challenges")
+}
+
+model ChallengeCompletion {
+  challengeId String
+  userId      String
+  date        DateTime @db.Date
+  completed   Boolean  @default(false)
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, userId, date])
+  @@map("challenge_completions")
 }

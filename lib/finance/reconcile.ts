@@ -9,8 +9,15 @@ export function findBestDebtMatch(
   senderName: string,
   amount: number,
   debts: { id: string; debtorName: string; amount: number; context: string | null }[]
-): { id: string; debtorName: string; context: string | null; delta: number } | null {
-  let best: { id: string; debtorName: string; context: string | null; score: number; delta: number } | null = null
+): { id: string; debtorName: string; amount: number; context: string | null; delta: number } | null {
+  let best: {
+    id: string
+    debtorName: string
+    amount: number
+    context: string | null
+    score: number
+    delta: number
+  } | null = null
 
   for (const debt of debts) {
     const nameScore = nameSimilarity(senderName, debt.debtorName)
@@ -22,6 +29,7 @@ export function findBestDebtMatch(
         best = {
           id: debt.id,
           debtorName: debt.debtorName,
+          amount: debt.amount,
           context: debt.context,
           score: nameScore,
           delta: amount - debt.amount,
@@ -31,5 +39,5 @@ export function findBestDebtMatch(
   }
 
   if (!best) return null
-  return { id: best.id, debtorName: best.debtorName, context: best.context, delta: best.delta }
+  return { id: best.id, debtorName: best.debtorName, amount: best.amount, context: best.context, delta: best.delta }
 }

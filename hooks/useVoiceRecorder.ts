@@ -10,13 +10,13 @@ export function useVoiceRecorder() {
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const start = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
-    if (!SpeechRecognition) {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognitionCtor) {
       setState('unsupported')
       return
     }
 
-    const recognition = new SpeechRecognition()
+    const recognition = new SpeechRecognitionCtor()
     recognition.lang = 'en-MY'
     recognition.interimResults = true
     recognition.maxAlternatives = 1

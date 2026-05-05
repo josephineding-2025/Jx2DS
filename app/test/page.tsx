@@ -6,7 +6,7 @@ import { useVoiceRecorder } from '@/hooks/useVoiceRecorder'
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
 
 export default function TestPage() {
-  const { state: voiceState, transcript, start, stop, reset } = useVoiceRecorder()
+  const { state: voiceState, transcript, start, stop } = useVoiceRecorder()
   const [voiceResult, setVoiceResult] = useState<object | null>(null)
   const [receiptResult, setReceiptResult] = useState<object | null>(null)
   const [reconcileResult, setReconcileResult] = useState<object | null>(null)
@@ -103,7 +103,7 @@ export default function TestPage() {
 
       <section style={{ marginBottom: 32, borderBottom: '1px solid #ccc', paddingBottom: 16 }}>
         <h2>1. Voice Input → Parse-Voice API</h2>
-        <p>Say: "Paid RM85 at Nando&apos;s Midvalley for 4 people"</p>
+        <p>Say: &quot;Paid RM85 at Nando&apos;s Midvalley for 4 people&quot;</p>
         <button onClick={voiceState === 'listening' ? stop : start} style={btn}>
           {voiceState === 'listening' ? 'Stop Recording' : 'Start Recording'}
         </button>
@@ -132,7 +132,7 @@ export default function TestPage() {
       </section>
 
       <section style={{ marginBottom: 32, borderBottom: '1px solid #ccc', paddingBottom: 16 }}>
-        <h2>3. Reconcile — Simulate "Ali paid RM21"</h2>
+        <h2>3. Reconcile — Simulate &quot;Ali paid RM21&quot;</h2>
         <p>Requires seed data with Ali&apos;s pending debt</p>
         <button onClick={simulateReconcile} disabled={loading === 'reconcile'} style={btn}>
           {loading === 'reconcile' ? 'Reconciling...' : 'POST /api/reconcile { senderName: Ali, amount: 21 }'}
