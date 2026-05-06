@@ -99,12 +99,14 @@ export function DebtCard({
   iOwe = false,
   squadMembers,
   setTransferSheet,
+  onRequestPayment,
   flash,
 }: {
   debt: DebtItem;
   iOwe?: boolean;
   squadMembers?: SquadMemberItem[];
   setTransferSheet?: (sheet: { toUserId: string; toUserName: string; amountMyr: string; debtRecordId: string | null }) => void;
+  onRequestPayment?: (name: string, amount: number) => void;
   flash?: (msg: string) => void;
 }) {
   const settled = debt.status === "settled";
@@ -126,6 +128,14 @@ export function DebtCard({
       amountMyr: debt.amount.toFixed(2),
       debtRecordId: debt.id,
     });
+  };
+
+  const handleRequest = () => {
+    if (onRequestPayment) {
+      onRequestPayment(debt.debtorName, debt.amount);
+    } else if (flash) {
+      flash(`Payment requested from ${debt.debtorName}`);
+    }
   };
 
   return (
@@ -154,12 +164,12 @@ export function DebtCard({
           <Pill green={settled} amber={partial || iOwe}>
             {settled ? "Settled" : partial ? "Partial" : iOwe ? "You owe" : "Owes"}
           </Pill>
-          {!settled && !iOwe && setTransferSheet && (
+          {!settled && (setTransferSheet || onRequestPayment) && (
             <button
               className="rounded-full bg-[#7C3AED]/20 px-3 py-1 text-[11px] font-black text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/30"
-              onClick={handlePay}
+              onClick={iOwe ? handlePay : handleRequest}
             >
-              Pay
+              {iOwe ? "Pay" : "Request"}
             </button>
           )}
         </div>

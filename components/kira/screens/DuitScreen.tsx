@@ -149,7 +149,11 @@ export function DuitScreen({
                   key={debt.id}
                   debt={debt}
                   squadMembers={squadMembers}
-                  setTransferSheet={setTransferSheet}
+                  onRequestPayment={(name, amount) => {
+                    onReconcileNameChange(name);
+                    onReconcileAmountChange(String(amount));
+                    flash(`Request sent to ${name} — match payment below`);
+                  }}
                   flash={flash}
                 />
               ))}
