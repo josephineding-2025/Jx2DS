@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { formatSenToMyr, parseMyrToSen, splitSenByPercentages } from '@/lib/finance/money'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,9 +14,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No buckets configured for user' }, { status: 404 })
     }
 
+    const amountSen = parseMyrToSen(String(amount))
+    const amountMyr = Number(formatSenToMyr(amountSen))
+    const percentages = buckets.map(bucket => bucket.percentage)
+    const shares = splitSenByPercentages(amountSen, percentages)
+
     const allocations = []
-    for (const bucket of buckets) {
-      const allocated = (amount * bucket.percentage) / 100
+    for (let i = 0; i < buckets.length; i++) {
+      const bucket = buckets[i]
+      const allocated = Number(formatSenToMyr(shares[i]))
       const updated = await prisma.bucket.update({
         where: { id: bucket.id },
         data: { balance: { increment: allocated } },
@@ -33,11 +40,17 @@ export async function POST(req: NextRequest) {
     await prisma.transaction.create({
       data: {
         userId,
-        amount,
+        amount: amountMyr,
         category: 'Income',
         merchant: 'Salary',
         source: 'salary',
       },
+    })
+
+    // Credit the user's wallet
+    await prisma.ledgerAccount.update({
+      where: { userId },
+      data: { balanceSen: { increment: amountSen } },
     })
 
     return NextResponse.json({ allocations })

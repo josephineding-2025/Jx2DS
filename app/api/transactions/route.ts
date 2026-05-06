@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { formatSenToMyr, parseMyrToSen } from "@/lib/finance/money";
 import type { ParsedExpense } from "@/types";
 
 type SaveTransactionBody = {
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const amount = Number(expense.amount);
+    const amountSen = parseMyrToSen(String(expense.amount));
+    const amount = Number(formatSenToMyr(amountSen));
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { error: "expense.amount must be a positive number" },
@@ -49,20 +51,33 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const debtRows = expense.debt_records
-        .filter((debt) => debt.name && Number(debt.amount) > 0)
-        .map((debt) => ({
-          creditorId: userId,
-          debtorName: debt.name,
-          amount: Number(debt.amount),
-          context: expense.merchant,
-          transactionId: transaction.id,
-          status: "pending",
-        }));
+      const debtRows = expense.debt_records.flatMap((debt) => {
+        if (!debt.name) return [];
+
+        const debtAmountSen = parseMyrToSen(String(debt.amount));
+        if (debtAmountSen <= 0n) return [];
+
+        return [
+          {
+            creditorId: userId,
+            debtorName: debt.name,
+            amount: Number(formatSenToMyr(debtAmountSen)),
+            context: expense.merchant,
+            transactionId: transaction.id,
+            status: "pending",
+          },
+        ];
+      });
 
       if (debtRows.length) {
         await tx.debtRecord.createMany({ data: debtRows });
       }
+
+      // Debit the user's wallet for the expense amount
+      await tx.ledgerAccount.update({
+        where: { userId },
+        data: { balanceSen: { decrement: amountSen } },
+      });
 
       const debts = await tx.debtRecord.findMany({
         where: { transactionId: transaction.id },

@@ -1,3 +1,5 @@
+import { decimalToSen, formatSenToMyr, isNonNegativeSen, parseMyrToSen, subtractSen } from '@/lib/finance/money'
+
 function nameSimilarity(a: string, b: string): number {
   const tokensA = a.toLowerCase().split(/\s+/)
   const tokensB = b.toLowerCase().split(/\s+/)
@@ -18,11 +20,16 @@ export function findBestDebtMatch(
     score: number
     delta: number
   } | null = null
+  const senderSen = parseMyrToSen(String(amount))
 
   for (const debt of debts) {
     const nameScore = nameSimilarity(senderName, debt.debtorName)
-    const amountDiff = Math.abs(amount - debt.amount)
-    const amountMatch = amountDiff <= Math.max(1, debt.amount * 0.1)
+    const debtSen = decimalToSen(debt.amount)
+    const tenPercentSen = debtSen / 10n
+    const tolerance = tenPercentSen > 100n ? tenPercentSen : 100n
+    const deltaSen = subtractSen(senderSen, debtSen)
+    const diff = isNonNegativeSen(deltaSen) ? deltaSen : subtractSen(debtSen, senderSen)
+    const amountMatch = diff <= tolerance
 
     if (nameScore > 0.7 && amountMatch) {
       if (!best || nameScore > best.score) {
@@ -32,7 +39,7 @@ export function findBestDebtMatch(
           amount: debt.amount,
           context: debt.context,
           score: nameScore,
-          delta: amount - debt.amount,
+          delta: Number(formatSenToMyr(deltaSen)),
         }
       }
     }

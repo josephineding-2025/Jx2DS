@@ -1,3 +1,5 @@
+import { parseMyrToSen, formatSenToMyr } from '@/lib/finance/money'
+
 export interface MusimCalc {
   id: string
   eventName: string
@@ -17,14 +19,16 @@ export function calcMusimEvents(
     .map(e => {
       const msPerDay = 1000 * 60 * 60 * 24
       const daysRemaining = Math.ceil((e.eventDate.getTime() - fromDate.getTime()) / msPerDay)
-      const dailyTarget = daysRemaining > 0 ? e.estimatedCost / daysRemaining : 0
+      const estimatedSen = parseMyrToSen(String(e.estimatedCost))
+      const dailyTargetSen = daysRemaining > 0 ? estimatedSen / BigInt(daysRemaining) : 0n
+      const dailyTarget = Number(formatSenToMyr(dailyTargetSen))
       return {
         id: e.id,
         eventName: e.eventName,
         eventDate: e.eventDate.toISOString().split('T')[0],
-        estimatedCost: Number(e.estimatedCost),
+        estimatedCost: Number(formatSenToMyr(estimatedSen)),
         daysRemaining,
-        dailyTarget: Math.round(dailyTarget * 100) / 100,
+        dailyTarget,
         category: e.category,
         autoSaveEnabled: e.autoSaveEnabled ?? false,
       }

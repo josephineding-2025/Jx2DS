@@ -18,6 +18,8 @@ export async function getDemoState(
     streaks,
     sharedBucket,
     challenge,
+    walletAccount,
+    transferRows,
   ] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.transaction.findMany({
@@ -65,6 +67,21 @@ export async function getDemoState(
       },
       orderBy: { startDate: "desc" },
     }),
+    prisma.ledgerAccount.findUnique({
+      where: { userId },
+      select: { balanceSen: true },
+    }),
+    prisma.transfer.findMany({
+      where: {
+        OR: [{ fromUserId: userId }, { toUserId: userId }],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        fromUser: { select: { id: true, name: true } },
+        toUser: { select: { id: true, name: true } },
+      },
+    }),
   ]);
 
   if (!user) return null;
@@ -88,6 +105,19 @@ export async function getDemoState(
       salaryDay: user.salaryDay,
       squadId: user.squadId,
     },
+    walletBalanceSen: walletAccount?.balanceSen?.toString() ?? "0",
+    transfers: transferRows.map((transfer) => ({
+      id: transfer.id,
+      fromUserId: transfer.fromUserId,
+      fromUserName: transfer.fromUser.name,
+      toUserId: transfer.toUserId,
+      toUserName: transfer.toUser.name,
+      amountSen: transfer.amountSen.toString(),
+      direction: transfer.fromUserId === userId ? "sent" : "received",
+      status: transfer.status,
+      note: transfer.note,
+      createdAt: transfer.createdAt.toISOString(),
+    })),
     transactions: transactions.map((transaction) => ({
       id: transaction.id,
       userId: transaction.userId,

@@ -2,9 +2,24 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
+const DEMO_USER_IDS = [
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000005',
+]
 const DEMO_SQUAD_ID = '00000000-0000-0000-0000-000000000010'
 const DEMO_SHARED_BUCKET_ID = '00000000-0000-0000-0000-000000000020'
 const DEMO_CHALLENGE_ID = '00000000-0000-0000-0000-000000000030'
+
+const walletBalances: Record<string, number> = {
+  '00000000-0000-0000-0000-000000000001': 222000,
+  '00000000-0000-0000-0000-000000000002': 180000,
+  '00000000-0000-0000-0000-000000000003': 240000,
+  '00000000-0000-0000-0000-000000000004': 150000,
+  '00000000-0000-0000-0000-000000000005': 60000,
+}
 
 export async function POST() {
   try {
@@ -13,6 +28,9 @@ export async function POST() {
     const startOfWeek = daysAgo(4) // challenge started 4 days ago
 
     // Reset all demo data (order matters for FK constraints)
+    await prisma.ledgerEntry.deleteMany({ where: { account: { userId: { in: DEMO_USER_IDS } } } })
+    await prisma.ledgerAccount.deleteMany({ where: { userId: { in: DEMO_USER_IDS } } })
+    await prisma.transfer.deleteMany({ where: { OR: [{ fromUserId: { in: DEMO_USER_IDS } }, { toUserId: { in: DEMO_USER_IDS } }] } })
     await prisma.challengeCompletion.deleteMany({ where: { challengeId: DEMO_CHALLENGE_ID } })
     await prisma.challenge.deleteMany({ where: { id: DEMO_CHALLENGE_ID } })
     await prisma.sharedBucketMember.deleteMany({ where: { bucketId: DEMO_SHARED_BUCKET_ID } })
@@ -23,8 +41,8 @@ export async function POST() {
     await prisma.debtRecord.deleteMany({ where: { creditorId: DEMO_USER_ID } })
     await prisma.bucket.deleteMany({ where: { userId: DEMO_USER_ID } })
     await prisma.musimEvent.deleteMany({ where: { userId: DEMO_USER_ID } })
-    await prisma.transaction.deleteMany({ where: { userId: { in: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'] } } })
-    await prisma.user.deleteMany({ where: { id: { in: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'] } } })
+    await prisma.transaction.deleteMany({ where: { userId: { in: DEMO_USER_IDS } } })
+    await prisma.user.deleteMany({ where: { id: { in: DEMO_USER_IDS } } })
 
     await prisma.user.createMany({
       data: [
@@ -36,9 +54,18 @@ export async function POST() {
       ],
     })
 
+    await prisma.ledgerAccount.createMany({
+      data: DEMO_USER_IDS.map(uid => ({
+        type: 'USER_WALLET',
+        userId: uid,
+        balanceSen: BigInt(walletBalances[uid]),
+        currency: 'MYR',
+      })),
+    })
+
     await prisma.squad.create({ data: { id: DEMO_SQUAD_ID, name: 'KL Kawan Crew' } })
     await prisma.squadMember.createMany({
-      data: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'].map(uid => ({ squadId: DEMO_SQUAD_ID, userId: uid })),
+      data: DEMO_USER_IDS.map(uid => ({ squadId: DEMO_SQUAD_ID, userId: uid })),
     })
 
     await prisma.bucket.createMany({
@@ -102,7 +129,7 @@ export async function POST() {
         balance: 1350,
         targetAmount: 5000,
         members: {
-          create: ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000005'].map(uid => ({ userId: uid, contribution: 270 })),
+          create: DEMO_USER_IDS.map(uid => ({ userId: uid, contribution: 270 })),
         },
       },
     })
@@ -173,6 +200,13 @@ export async function DELETE() {
         { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(1), completed: true },
       ],
     })
+    // Reset wallet balances to initial amounts
+    for (const uid of DEMO_USER_IDS) {
+      await prisma.ledgerAccount.updateMany({
+        where: { userId: uid },
+        data: { balanceSen: BigInt(walletBalances[uid]) },
+      })
+    }
     return NextResponse.json({ ok: true, message: 'Demo state reset' })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

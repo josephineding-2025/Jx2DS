@@ -24,6 +24,9 @@ model User {
   squadStreaks           SquadStreak[]
   sharedBucketMembers   SharedBucketMember[]
   challengeCompletions  ChallengeCompletion[]
+  ledgerAccount         LedgerAccount?
+  sentTransfers         Transfer[]            @relation("SentTransfers")
+  receivedTransfers     Transfer[]            @relation("ReceivedTransfers")
 
   @@map("users")
 }
@@ -60,6 +63,7 @@ model DebtRecord {
 
   creditor    User         @relation(fields: [creditorId], references: [id], onDelete: Cascade)
   transaction Transaction? @relation(fields: [transactionId], references: [id])
+  settledByTransfer Transfer? @relation
 
   @@index([creditorId, status])
   @@map("debt_records")
@@ -188,4 +192,60 @@ model ChallengeCompletion {
 
   @@id([challengeId, userId, date])
   @@map("challenge_completions")
+}
+
+model LedgerAccount {
+  id         String   @id @default(cuid())
+  type       String   // "USER_WALLET" — kept as String for hackathon simplicity
+  currency   String   @default("MYR")
+  userId     String?  @unique
+  balanceSen BigInt   @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User?         @relation(fields: [userId], references: [id])
+  entries LedgerEntry[]
+
+  @@map("ledger_accounts")
+}
+
+model LedgerEntry {
+  id         String   @id @default(cuid())
+  transferId String
+  accountId  String
+  side       String   // "DEBIT" or "CREDIT" — kept as String for simplicity
+  amountSen  BigInt
+  currency   String   @default("MYR")
+  createdAt  DateTime @default(now())
+
+  transfer Transfer      @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  account  LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@map("ledger_entries")
+}
+
+model Transfer {
+  id             String   @id @default(cuid())
+  fromUserId     String
+  toUserId       String
+  amountSen      BigInt
+  currency       String   @default("MYR")
+  status         String   @default("POSTED")
+  idempotencyKey String
+  debtRecordId   String?  @unique
+  note           String?
+  createdAt      DateTime @default(now())
+  postedAt       DateTime?
+
+  fromUser      User        @relation("SentTransfers", fields: [fromUserId], references: [id])
+  toUser        User        @relation("ReceivedTransfers", fields: [toUserId], references: [id])
+  debtRecord    DebtRecord? @relation(fields: [debtRecordId], references: [id])
+  ledgerEntries LedgerEntry[]
+
+  @@unique([fromUserId, idempotencyKey])
+  @@index([toUserId])
+  @@index([debtRecordId])
+  @@map("transfers")
 }

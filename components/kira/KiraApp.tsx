@@ -26,7 +26,6 @@ import {
   Moon,
   PiggyBank,
   ReceiptText,
-  RefreshCcw,
   Search,
   Send,
   ShoppingBag,
@@ -51,7 +50,7 @@ import { buildProjection } from "@/lib/finance/projection";
 import type { ParsedExpense } from "@/types";
 
 type TabId = "home" | "duit" | "arus" | "kawan" | "cermin";
-type SheetId = "voice" | "receipt" | "request" | null;
+type SheetId = "voice" | "receipt" | null;
 type TransactionItem = DemoState["transactions"][number];
 type DebtItem = DemoState["debts"][number];
 type BucketItem = DemoState["buckets"][number];
@@ -66,7 +65,6 @@ const tabs: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: "cermin", label: "Cermin", icon: Sparkles },
 ];
 
-const demoPhrase = "Paid RM85 at Nando's Midvalley for 4 people";
 const moneyFormatter = new Intl.NumberFormat("en-MY", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -92,12 +90,18 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   const [reconcileName, setReconcileName] = useState("");
   const [reconcileAmount, setReconcileAmount] = useState("");
   const [contributeSheet, setContributeSheet] = useState<string | null>(null);
+  const [transferSheet, setTransferSheet] = useState<{
+    toUserId: string;
+    toUserName: string;
+    amountMyr: string;
+    debtRecordId: string | null;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch(
       `/api/demo-state?userId=${DEMO_USER_ID}&squadId=${DEMO_SQUAD_ID}`,
     );
-    if (!res.ok) throw new Error("Could not refresh demo state");
+    if (!res.ok) throw new Error("Could not load account state");
     setData((await res.json()) as DemoState);
   }, []);
 
@@ -112,19 +116,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
       const res = await fetch("/api/seed", { method: "POST" });
       if (!res.ok) throw new Error("Seed failed");
       await refresh();
-      flash("Demo data seeded");
-    } finally {
-      setBusy(null);
-    }
-  }, [flash, refresh]);
-
-  const reset = useCallback(async () => {
-    setBusy("reset");
-    try {
-      const res = await fetch("/api/seed", { method: "DELETE" });
-      if (!res.ok) throw new Error("Reset failed");
-      await refresh();
-      flash("Demo state reset");
+      flash("Account ready");
     } finally {
       setBusy(null);
     }
@@ -248,6 +240,37 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     [flash, refresh],
   );
 
+  const sendTransfer = useCallback(
+    async (toUserId: string, amountMyr: string, debtRecordId: string | null, note?: string) => {
+      setBusy("transfer");
+      try {
+        const idempotencyKey = crypto.randomUUID();
+        const res = await fetch("/api/transfer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromUserId: DEMO_USER_ID,
+            toUserId,
+            amountMyr,
+            idempotencyKey,
+            debtRecordId: debtRecordId || undefined,
+            note,
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error ?? "Transfer failed");
+        await refresh();
+        setTransferSheet(null);
+        flash(debtRecordId ? "Debt settled — payment sent" : `RM ${amountMyr} sent`);
+      } catch (err) {
+        flash(err instanceof Error ? err.message : "Transfer failed");
+      } finally {
+        setBusy(null);
+      }
+    },
+    [flash, refresh],
+  );
+
   if (!data) {
     return (
       <SeedScreen busy={busy === "seed"} onSeed={seed} />
@@ -270,8 +293,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
               <HomeScreen
                 data={data}
                 onOpenSheet={setSheet}
-                onReset={reset}
-                resetting={busy === "reset"}
                 onToggleMusimAutoSave={toggleMusimAutoSave}
               />
             )}
@@ -279,12 +300,16 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
               <DuitScreen
                 debts={data.debts}
                 transactions={data.transactions}
+                transfers={data.transfers}
+                squadMembers={data.squadMembers}
                 onReconcile={reconcile}
                 reconciling={busy === "reconcile"}
                 reconcileName={reconcileName}
                 reconcileAmount={reconcileAmount}
                 onReconcileNameChange={setReconcileName}
                 onReconcileAmountChange={setReconcileAmount}
+                setTransferSheet={setTransferSheet}
+                flash={flash}
               />
             )}
             {activeTab === "arus" && (
@@ -325,18 +350,25 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           onClose={() => setSheet(null)}
           onSave={(expense) => saveExpense(expense, "receipt")}
         />
-        <RequestSheet
-          open={sheet === "request"}
-          onClose={() => setSheet(null)}
-          onFlash={flash}
-          squadMembers={data.squadMembers}
-        />
         <ContributeSheet
           open={contributeSheet !== null}
           bucketId={contributeSheet ?? ""}
           busy={busy === "contribute"}
           onClose={() => setContributeSheet(null)}
           onContribute={contribute}
+        />
+        <TransferSheet
+          open={transferSheet !== null}
+          busy={busy === "transfer"}
+          onClose={() => setTransferSheet(null)}
+          onSend={(amountMyr, note) => {
+            if (transferSheet) {
+              sendTransfer(transferSheet.toUserId, amountMyr, transferSheet.debtRecordId, note);
+            }
+          }}
+          toUserName={transferSheet?.toUserName ?? ""}
+          amountMyr={transferSheet?.amountMyr ?? ""}
+          debtRecordId={transferSheet?.debtRecordId ?? null}
         />
 
         <AnimatePresence>
@@ -372,11 +404,11 @@ function SeedScreen({
         </div>
         <h1 className="m-0 text-[42px] font-black">Kira</h1>
         <p className="m-0 max-w-[280px] leading-6 text-zinc-400">
-          Demo data is not loaded yet. Seed Amirah&apos;s account to open the app.
+          Set up Amirah&apos;s account to explore Kira.
         </p>
         <button className={primaryButton()} onClick={onSeed} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-          Seed demo data
+          Get started
         </button>
       </div>
     </main>
@@ -405,17 +437,13 @@ function Hero({ compact = false }: { compact?: boolean }) {
 function HomeScreen({
   data,
   onOpenSheet,
-  onReset,
-  resetting,
   onToggleMusimAutoSave,
 }: {
   data: DemoState;
   onOpenSheet: (sheet: SheetId) => void;
-  onReset: () => void;
-  resetting: boolean;
   onToggleMusimAutoSave: (eventId: string, enabled: boolean) => void;
 }) {
-  const balance = data.buckets.reduce((sum, bucket) => sum + bucket.balance, 0);
+  const balance = Number(data.walletBalanceSen) / 100;
   const savings = data.buckets.find((bucket) => bucket.type === "savings");
   const saveRate = savings?.percentage ?? 0;
 
@@ -433,18 +461,9 @@ function HomeScreen({
     <>
       <Hero />
       <ScreenScroller>
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="mb-2 text-[13px] font-medium text-white/75">{greeting()}, {data.user.name.split(" ")[0]}</p>
-            <h1 className="m-0 text-2xl font-black leading-none">Total balance</h1>
-          </div>
-          <IconButton
-            label="Reset demo state"
-            onClick={onReset}
-            disabled={resetting}
-            icon={resetting ? Loader2 : RefreshCcw}
-            spin={resetting}
-          />
+        <div>
+          <p className="mb-2 text-[13px] font-medium text-white/75">{greeting()}, {data.user.name.split(" ")[0]}</p>
+          <h1 className="m-0 text-2xl font-black leading-none">Total balance</h1>
         </div>
 
         <div className="mt-4 flex items-center gap-2.5">
@@ -455,17 +474,18 @@ function HomeScreen({
             <Eye size={15} />
           </button>
         </div>
-        <div className="mt-2.5 flex gap-2.5 text-xs text-white/70">
-          <span className={weeklyDelta >= 0 ? "text-[#4ADE80]" : "text-[#EC4899]"}>
-            {weeklyDelta >= 0 ? "+" : ""}{formatSignedMoney(weeklyDelta)} this week
-          </span>
-          <span>{saveRate}% saved</span>
+        <div className="mt-2.5 flex flex-col gap-1">
+          <div className="flex gap-2.5 text-xs text-white/70">
+            <span className={weeklyDelta >= 0 ? "text-[#4ADE80]" : "text-[#EC4899]"}>
+              {weeklyDelta >= 0 ? "+" : ""}{formatSignedMoney(weeklyDelta)} this week
+            </span>
+            <span>{saveRate}% saved</span>
+          </div>
         </div>
 
-        <div className="my-6 grid grid-cols-3 gap-3">
+        <div className="my-6 grid grid-cols-2 gap-3">
           <QuickAction icon={Mic} label="Voice Log" onClick={() => onOpenSheet("voice")} />
           <QuickAction icon={Camera} label="Scan Receipt" onClick={() => onOpenSheet("receipt")} />
-          <QuickAction icon={Send} label="Request" onClick={() => onOpenSheet("request")} />
         </div>
 
         <SectionHeader title="Musim" action="See all" />
@@ -475,7 +495,7 @@ function HomeScreen({
           ))}
           {!data.musimEvents.length && (
             <div className={card("min-w-[220px] p-4 text-sm text-zinc-400")}>
-              No upcoming events. Run seed to refresh the demo calendar.
+              No upcoming events scheduled.
             </div>
           )}
         </div>
@@ -494,23 +514,31 @@ function HomeScreen({
 function DuitScreen({
   debts,
   transactions,
+  transfers,
+  squadMembers,
   onReconcile,
   reconciling,
   reconcileName,
   reconcileAmount,
   onReconcileNameChange,
   onReconcileAmountChange,
+  setTransferSheet,
+  flash,
 }: {
   debts: DebtItem[];
   transactions: TransactionItem[];
+  transfers: DemoState["transfers"];
+  squadMembers: SquadMemberItem[];
   onReconcile: (name: string, amount: number) => void;
   reconciling: boolean;
   reconcileName: string;
   reconcileAmount: string;
   onReconcileNameChange: (v: string) => void;
   onReconcileAmountChange: (v: string) => void;
+  setTransferSheet: (sheet: { toUserId: string; toUserName: string; amountMyr: string; debtRecordId: string | null }) => void;
+  flash: (msg: string) => void;
 }) {
-  const [view, setView] = useState<"transactions" | "owes_me" | "i_owe">("owes_me");
+  const [view, setView] = useState<"transactions" | "owes_me" | "i_owe" | "transfers">("owes_me");
 
   const oweMeDebts = debts.filter((d) => d.direction === "owe_me");
   const iOweDebts = debts.filter((d) => d.direction === "i_owe");
@@ -536,6 +564,7 @@ function DuitScreen({
             { id: "transactions", label: "Transactions" },
             { id: "owes_me", label: "Owes Me" },
             { id: "i_owe", label: "I Owe" },
+            { id: "transfers", label: "Transfers" },
           ]}
           onChange={setView}
         />
@@ -544,22 +573,44 @@ function DuitScreen({
           <GroupedTransactions transactions={transactions} />
         )}
 
+        {view === "transfers" && (
+          <div className="grid gap-3">
+            {transfers.length === 0 ? (
+              <div className={card("p-5 text-center text-sm text-zinc-400")}>
+                No transfers yet.
+              </div>
+            ) : (
+              transfers.map((t) => (
+                <div key={t.id} className={card("flex items-center gap-3 p-3.5")}>
+                  <div className={cn(
+                    "grid size-10 place-items-center rounded-full",
+                    t.direction === "sent" ? "bg-[#7C3AED]/20 text-[#A78BFA]" : "bg-[#4ADE80]/15 text-[#4ADE80]"
+                  )}>
+                    {t.direction === "sent" ? <Send size={18} /> : <CircleDollarSign size={18} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-bold">
+                      {t.direction === "sent" ? `To ${t.toUserName}` : `From ${t.fromUserName}`}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      {new Date(t.createdAt).toLocaleDateString("en-MY", { day: "numeric", month: "short" })}
+                      {t.note && ` · ${t.note}`}
+                    </p>
+                  </div>
+                  <span className={cn(
+                    "text-sm font-black tabular-nums",
+                    t.direction === "sent" ? "text-white" : "text-[#4ADE80]"
+                  )}>
+                    {t.direction === "sent" ? "-" : "+"}RM {(Number(t.amountSen) / 100).toFixed(2)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {view === "owes_me" && (
           <>
-            {/* Escrow concept card */}
-            <div className={card("mb-4 flex items-center gap-3 p-3.5")}>
-              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#7C3AED]/20 text-[#A78BFA]">
-                <Wallet size={17} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <strong className="block text-[13px]">Debt Escrow</strong>
-                <span className="mt-0.5 block text-[11px] text-zinc-400">
-                  Pre-funded — auto-settles when you owe
-                </span>
-              </div>
-              <strong className="shrink-0 text-sm font-black text-[#A78BFA]">RM 150.00</strong>
-            </div>
-
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="mb-1 text-xs text-zinc-400">Outstanding</p>
@@ -596,17 +647,17 @@ function DuitScreen({
                 {reconciling ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
                 Match payment
               </button>
-              <button
-                className="text-center text-[11px] font-bold text-[#A78BFA] underline"
-                onClick={() => { onReconcileNameChange("Ali"); onReconcileAmountChange("21"); }}
-              >
-                Demo: pre-fill Ali RM21
-              </button>
             </div>
 
             <div className="grid gap-3">
               {oweMeDebts.map((debt) => (
-                <DebtCard key={debt.id} debt={debt} />
+                <DebtCard
+                  key={debt.id}
+                  debt={debt}
+                  squadMembers={squadMembers}
+                  setTransferSheet={setTransferSheet}
+                  flash={flash}
+                />
               ))}
             </div>
           </>
@@ -625,7 +676,14 @@ function DuitScreen({
             ) : (
               <div className="grid gap-3">
                 {iOweDebts.map((debt) => (
-                  <DebtCard key={debt.id} debt={debt} iOwe />
+                  <DebtCard
+                    key={debt.id}
+                    debt={debt}
+                    iOwe
+                    squadMembers={squadMembers}
+                    setTransferSheet={setTransferSheet}
+                    flash={flash}
+                  />
                 ))}
               </div>
             )}
@@ -681,42 +739,9 @@ function ArusScreen({
           ))}
         </div>
 
-        <div className={card("my-4 grid gap-2 p-3")}>
-          <p className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
-            Pre-authorised payments
-          </p>
-          {[
-            { merchant: "PTPTN Auto-Debit", amount: 400, day: 25 },
-            { merchant: "Celcom Postpaid", amount: 65, day: 3 },
-          ].map((bill) => (
-            <div key={bill.merchant} className="flex items-center gap-3 py-1.5">
-              <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#4ADE80]/15 text-[#4ADE80]">
-                <ReceiptText size={14} />
-              </div>
-              <div className="min-w-0 flex-1 text-[13px]">
-                <strong className="block font-black">{bill.merchant}</strong>
-                <span className="text-[11px] text-zinc-400">From Bills bucket — {bill.day}th monthly</span>
-              </div>
-              <span className="text-xs font-black text-[#4ADE80]">Auto</span>
-            </div>
-          ))}
-        </div>
-
-        <div className={card("my-4 flex items-center gap-3 p-3")}>
-          <div className="grid size-9 place-items-center rounded-xl bg-[#7C3AED]/20 text-[#A78BFA]">
-            <Zap size={17} />
-          </div>
-          <div>
-            <strong className="block text-[13px]">Smart rule active</strong>
-            <span className="mt-0.5 block text-[11px] text-zinc-400">
-              Round-up RM 0.85 to savings on every spend
-            </span>
-          </div>
-        </div>
-
-        <button className={primaryButton("w-full")} onClick={onSimulateSalary} disabled={simulating}>
+        <button className={primaryButton("w-full mt-4")} onClick={onSimulateSalary} disabled={simulating}>
           {simulating ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-          Simulate salary received
+          Salary received
         </button>
       </ScreenScroller>
     </>
@@ -978,22 +1003,20 @@ function VoiceSheet({
   onSave: (expense: ParsedExpense) => void;
 }) {
   const { state, transcript, start, stop } = useVoiceRecorder();
-  const [manualTranscript, setManualTranscript] = useState("");
   const [parsed, setParsed] = useState<ParsedExpense | null>(null);
   const [notes, setNotes] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const activeTranscript = transcript || manualTranscript;
 
   const parse = async () => {
-    if (!activeTranscript) return;
+    if (!transcript) return;
     setParsing(true);
     setError(null);
     try {
       const res = await fetch("/api/parse-voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: activeTranscript }),
+        body: JSON.stringify({ transcript }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Parse failed");
@@ -1020,31 +1043,20 @@ function VoiceSheet({
         </button>
       </div>
       <p className="mb-3 text-center text-[13px] text-zinc-400">
-        {state === "listening" ? "Listening" : "Tap mic or use the demo phrase"}
+        {state === "listening" ? "Listening…" : "Tap the mic and speak"}
       </p>
 
       <div className={card("bg-[#1E1E30] p-4")}>
         <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Transcript</span>
         <p className="mt-1.5 min-h-6 text-sm leading-6">
-          {activeTranscript || "No speech captured yet."}
+          {transcript || "No speech captured yet."}
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <button
-          className={secondaryButton()}
-          onClick={() => {
-            setManualTranscript(demoPhrase);
-            setParsed(null);
-          }}
-        >
-          Use demo phrase
-        </button>
-        <button className={primaryButton()} onClick={parse} disabled={!activeTranscript || parsing}>
-          {parsing ? <Loader2 className="animate-spin" size={17} /> : <Sparkles size={17} />}
-          Parse
-        </button>
-      </div>
+      <button className={cn(primaryButton("w-full mt-3"))} onClick={parse} disabled={!transcript || parsing}>
+        {parsing ? <Loader2 className="animate-spin" size={17} /> : <Sparkles size={17} />}
+        Parse
+      </button>
 
       {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
       {parsed && (
@@ -1258,87 +1270,6 @@ function ParsedExpenseCard({
   );
 }
 
-function RequestSheet({
-  open,
-  onClose,
-  onFlash,
-  squadMembers,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onFlash: (msg: string) => void;
-  squadMembers: SquadMemberItem[];
-}) {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-
-  const send = () => {
-    if (!name.trim() || !amount) return;
-    onClose();
-    onFlash(`Request sent to ${name.trim()}`);
-    setName(""); setAmount(""); setNote("");
-  };
-
-  return (
-    <BottomSheet open={open} onClose={onClose}>
-      <SheetHeader label="Request Payment" onClose={onClose} />
-      <div className="mt-4 grid gap-3">
-        <div>
-          <label className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-zinc-500">Request from</label>
-          <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto pb-1">
-            {squadMembers
-              .filter((m) => !m.isCurrentUser)
-              .map((m) => (
-                <button
-                  key={m.userId}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
-                    name === m.name
-                      ? "border-[#7C3AED] bg-[#7C3AED]/20 text-white"
-                      : "border-white/10 bg-white/5 text-zinc-300",
-                  )}
-                  onClick={() => setName(m.name)}
-                >
-                  <Avatar name={m.name} small />
-                  {m.name.split(" ")[0]}
-                </button>
-              ))}
-          </div>
-          <input
-            className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
-            placeholder="Or type a name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <input
-          className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
-          placeholder="Amount (RM)"
-          type="number"
-          min="0"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-        <input
-          className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-        <button
-          className={primaryButton("w-full")}
-          onClick={send}
-          disabled={!name.trim() || !amount}
-        >
-          <Send size={16} />
-          Send Request
-        </button>
-      </div>
-    </BottomSheet>
-  );
-}
-
 function ContributeSheet({
   open,
   bucketId,
@@ -1390,6 +1321,75 @@ function ContributeSheet({
         >
           {busy ? <Loader2 className="animate-spin" size={17} /> : <PiggyBank size={17} />}
           Add to bucket
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function TransferSheet({
+  open,
+  busy,
+  onClose,
+  onSend,
+  toUserName,
+  amountMyr,
+  debtRecordId,
+}: {
+  open: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onSend: (amountMyr: string, note?: string) => void;
+  toUserName: string;
+  amountMyr: string;
+  debtRecordId: string | null;
+}) {
+  const [amount, setAmount] = useState(amountMyr);
+  const [note, setNote] = useState("");
+
+  useMemo(() => {
+    if (open) {
+      setAmount(amountMyr);
+      setNote("");
+    }
+  }, [open, amountMyr]);
+
+  return (
+    <BottomSheet open={open} onClose={onClose}>
+      <SheetHeader label="Send Money" onClose={onClose} />
+      <div className="mt-4 grid gap-3">
+        <div className={card("bg-[#1E1E30] p-4")}>
+          <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Recipient</span>
+          <p className="mt-1.5 text-sm font-bold text-white">{toUserName}</p>
+        </div>
+        <div className={card("bg-[#1E1E30] p-4")}>
+          <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Amount (RM)</span>
+          <input
+            className="mt-1.5 w-full bg-transparent text-[28px] font-black text-[#4ADE80] placeholder:text-[#4ADE80]/30 focus:outline-none"
+            placeholder="0.00"
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
+        <div className={card("bg-[#1E1E30] p-4")}>
+          <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Note (Optional)</span>
+          <input
+            className="mt-1.5 w-full bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+            placeholder="What's this for?"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+        <button
+          className={primaryButton("w-full mt-2")}
+          onClick={() => onSend(amount, note)}
+          disabled={busy || !amount || Number(amount) <= 0}
+        >
+          {busy ? <Loader2 className="animate-spin" size={17} /> : <Send size={17} />}
+          Send RM {Number(amount || 0).toFixed(2)} to {toUserName.split(" ")[0]}
         </button>
       </div>
     </BottomSheet>
@@ -1634,10 +1634,39 @@ function GroupedTransactions({ transactions }: { transactions: TransactionItem[]
   );
 }
 
-function DebtCard({ debt, iOwe = false }: { debt: DebtItem; iOwe?: boolean }) {
+function DebtCard({
+  debt,
+  iOwe = false,
+  squadMembers,
+  setTransferSheet,
+  flash,
+}: {
+  debt: DebtItem;
+  iOwe?: boolean;
+  squadMembers?: SquadMemberItem[];
+  setTransferSheet?: (sheet: { toUserId: string; toUserName: string; amountMyr: string; debtRecordId: string | null }) => void;
+  flash?: (msg: string) => void;
+}) {
   const settled = debt.status === "settled";
   const partial = debt.status === "partial";
   const progress = settled ? 100 : partial ? 50 : 0;
+
+  const handlePay = () => {
+    if (!squadMembers || !setTransferSheet || !flash) return;
+    const member = squadMembers.find((m) =>
+      m.name.toLowerCase().startsWith(debt.debtorName.toLowerCase())
+    );
+    if (!member) {
+      flash(`Cannot find user account for ${debt.debtorName}`);
+      return;
+    }
+    setTransferSheet({
+      toUserId: member.userId,
+      toUserName: debt.debtorName,
+      amountMyr: debt.amount.toFixed(2),
+      debtRecordId: debt.id,
+    });
+  };
 
   return (
     <article
@@ -1661,9 +1690,19 @@ function DebtCard({ debt, iOwe = false }: { debt: DebtItem; iOwe?: boolean }) {
       </div>
       <div className="grid justify-items-end gap-1.5">
         <strong className="text-sm">{formatMoney(debt.amount)}</strong>
-        <Pill green={settled} amber={partial || iOwe}>
-          {settled ? "Settled" : partial ? "Partial" : iOwe ? "You owe" : "Owes"}
-        </Pill>
+        <div className="flex items-center gap-2">
+          <Pill green={settled} amber={partial || iOwe}>
+            {settled ? "Settled" : partial ? "Partial" : iOwe ? "You owe" : "Owes"}
+          </Pill>
+          {!settled && !iOwe && setTransferSheet && (
+            <button
+              className="rounded-full bg-[#7C3AED]/20 px-3 py-1 text-[11px] font-black text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/30"
+              onClick={handlePay}
+            >
+              Pay
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

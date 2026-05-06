@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { parseMyrToSen, sanitizeMyr } from "@/lib/finance/money";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,15 +10,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "bucketId, userId, and a positive amount are required" }, { status: 400 });
     }
 
+    const sanitizedAmount = sanitizeMyr(amount);
+
     await prisma.$transaction([
       prisma.sharedBucketMember.upsert({
         where: { bucketId_userId: { bucketId, userId } },
-        create: { bucketId, userId, contribution: amount },
-        update: { contribution: { increment: amount } },
+        create: { bucketId, userId, contribution: sanitizedAmount },
+        update: { contribution: { increment: sanitizedAmount } },
       }),
       prisma.sharedBucket.update({
         where: { id: bucketId },
-        data: { balance: { increment: amount } },
+        data: { balance: { increment: sanitizedAmount } },
+      }),
+      // Debit the user's wallet for the contribution amount
+      prisma.ledgerAccount.update({
+        where: { userId },
+        data: { balanceSen: { decrement: parseMyrToSen(String(amount)) } },
       }),
     ]);
 

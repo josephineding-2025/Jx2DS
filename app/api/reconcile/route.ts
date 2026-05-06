@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { parseMyrToSen, sanitizeMyr } from '@/lib/finance/money'
 import { findBestDebtMatch } from '@/lib/finance/reconcile'
 
 export async function POST(req: NextRequest) {
@@ -27,9 +28,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ matched: false, debtRecordId: null, debtorName: null, context: null, delta: null, remainingBalance: null })
     }
 
+    const sanitizedAmount = sanitizeMyr(amount)
     const delta = match.delta
     const tolerance = Math.max(1, match.amount * 0.1)
-    const newStatus = amount >= match.amount - tolerance ? 'settled' : 'partial'
+    const newStatus = sanitizedAmount >= match.amount - tolerance ? 'settled' : 'partial'
 
     await prisma.$transaction([
       prisma.debtRecord.update({
@@ -37,17 +39,22 @@ export async function POST(req: NextRequest) {
         data: {
           status: newStatus,
           settledAt: newStatus === 'settled' ? new Date() : null,
-          ...(newStatus === 'partial' && { amount: { decrement: amount } }),
+          ...(newStatus === 'partial' && { amount: { decrement: sanitizedAmount } }),
         },
       }),
       prisma.transaction.create({
         data: {
           userId,
-          amount,
+          amount: sanitizedAmount,
           category: 'Transfer',
           merchant: match.debtorName,
           source: 'transfer',
         },
+      }),
+      // Credit the user's wallet for the received repayment
+      prisma.ledgerAccount.update({
+        where: { userId },
+        data: { balanceSen: { increment: parseMyrToSen(String(amount)) } },
       }),
     ])
 
@@ -57,7 +64,7 @@ export async function POST(req: NextRequest) {
       debtorName: match.debtorName,
       context: match.context,
       delta,
-      remainingBalance: newStatus === 'partial' ? Number(pendingDebts.find(d => d.id === match.id)!.amount) - amount : 0,
+      remainingBalance: newStatus === 'partial' ? Number(pendingDebts.find(d => d.id === match.id)!.amount) - sanitizedAmount : 0,
     })
   } catch (err) {
     console.error('[reconcile]', err)
