@@ -1,6 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
+
+function localDate(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import type { DemoState } from "@/lib/demo/state";
 import type { SquadMemberItem, SquadItem } from "../constants";
@@ -13,19 +22,19 @@ export function KawanScreen({
   squads,
   activeSquadIndex,
   onSelectSquad,
-  onBreakChallenge,
+  onChallengeAction,
   breakingChallenge,
   onContribute,
 }: {
   squads: DemoState["squads"];
   activeSquadIndex: number;
   onSelectSquad: (index: number) => void;
-  onBreakChallenge: (challengeId: string, penaltyAmount: number) => void;
+  onChallengeAction: (challengeId: string, completed: boolean, penaltyAmount: number) => void;
   breakingChallenge: boolean;
   onContribute: (bucketId: string) => void;
 }) {
   const activeSquad = squads[activeSquadIndex] as SquadItem | undefined;
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = localDate();
 
   const challengeStats = useMemo(() => {
     if (!activeSquad?.challenge) return null;
@@ -41,10 +50,38 @@ export function KawanScreen({
     const todayBroken = myCompletions.find(
       (c) => c.date === todayStr && !c.completed,
     );
+    const todayDone = myCompletions.find(
+      (c) => c.date === todayStr && c.completed,
+    );
     const todayHasRecord = myCompletions.some((c) => c.date === todayStr);
     const progress = Math.round((completedDays / totalDays) * 100);
-    return { totalDays, completedDays, todayBroken, todayHasRecord, progress };
-  }, [activeSquad?.challenge, todayStr]);
+
+    // Group completion rate across all members
+    const today = new Date(todayStr + "T00:00:00");
+    const elapsedDays = Math.min(
+      Math.round((today.getTime() - start.getTime()) / msPerDay) + 1,
+      totalDays,
+    );
+    const totalMembers = activeSquad.members.length;
+    const totalPossible = totalMembers * Math.max(elapsedDays, 1);
+    const totalGroupCompleted = challenge.completions.filter((c) => c.completed).length;
+    const groupRate = Math.round((totalGroupCompleted / totalPossible) * 100);
+    const todayMembersCompleted = challenge.completions.filter(
+      (c) => c.date === todayStr && c.completed,
+    ).length;
+
+    return {
+      totalDays,
+      completedDays,
+      todayBroken,
+      todayDone,
+      todayHasRecord,
+      progress,
+      groupRate,
+      todayMembersCompleted,
+      totalMembers,
+    };
+  }, [activeSquad?.challenge, activeSquad?.members.length, todayStr]);
 
   if (!activeSquad) {
     return (
@@ -116,7 +153,7 @@ export function KawanScreen({
             {Array.from({ length: Math.min(challengeStats.totalDays, 7) }).map((_, day) => {
               const date = new Date(activeSquad.challenge!.startDate + "T00:00:00");
               date.setDate(date.getDate() + day);
-              const dateStr = date.toISOString().split("T")[0];
+              const dateStr = localDate(date);
               const completion = activeSquad.challenge!.completions.find(
                 (c) => c.date === dateStr && c.userId === DEMO_USER_ID,
               );
@@ -141,15 +178,33 @@ export function KawanScreen({
             {challengeStats.completedDays}/{challengeStats.totalDays} days complete
             {activeSquad.challenge.penaltyAmount > 0 && ` · RM${activeSquad.challenge.penaltyAmount} penalty if broken`}
           </p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Group: {challengeStats.groupRate}% completion · {challengeStats.todayMembersCompleted}/{challengeStats.totalMembers} done today
+          </p>
           {!challengeStats.todayHasRecord && (
-            <button
-              className={cn(secondaryButton("mt-3 w-full text-xs"), "border-[#F59E0B]/30 text-[#F59E0B]")}
-              onClick={() => onBreakChallenge(activeSquad.challenge!.id, activeSquad.challenge!.penaltyAmount)}
-              disabled={breakingChallenge}
-            >
-              {breakingChallenge ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
-              I broke it today
-            </button>
+            <div className="mt-3 flex gap-2">
+              <button
+                className={cn(secondaryButton("flex-1 text-xs"), "border-[#4ADE80]/30 text-[#4ADE80]")}
+                onClick={() => onChallengeAction(activeSquad.challenge!.id, true, activeSquad.challenge!.penaltyAmount)}
+                disabled={breakingChallenge}
+              >
+                {breakingChallenge ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+                Done today
+              </button>
+              <button
+                className={cn(secondaryButton("flex-1 text-xs"), "border-[#F59E0B]/30 text-[#F59E0B]")}
+                onClick={() => onChallengeAction(activeSquad.challenge!.id, false, activeSquad.challenge!.penaltyAmount)}
+                disabled={breakingChallenge}
+              >
+                {breakingChallenge ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
+                I broke it
+              </button>
+            </div>
+          )}
+          {challengeStats.todayDone && (
+            <p className="mt-3 text-center text-[11px] font-bold text-[#4ADE80]">
+              Completed today
+            </p>
           )}
           {challengeStats.todayBroken && (
             <p className="mt-3 text-center text-[11px] font-bold text-[#F59E0B]">

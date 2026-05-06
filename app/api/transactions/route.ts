@@ -9,6 +9,7 @@ import {
   toDebtState,
   toTransactionState,
 } from "@/lib/demo/state";
+import { updateStreak } from "@/lib/streak";
 import type { ParsedExpense } from "@/types";
 
 type SaveTransactionBody = {
@@ -99,6 +100,10 @@ export async function POST(req: NextRequest) {
         debts: debts.map(toDebtState),
       };
     });
+
+    // Update streaks for all squads the user belongs to (logging a transaction counts as daily activity)
+    const memberships = await prisma.squadMember.findMany({ where: { userId } });
+    await Promise.all(memberships.map((m) => updateStreak(userId, m.squadId, false)));
 
     const [transactions, debts, walletBalanceSen] = await Promise.all([
       getTransactionsState(userId),

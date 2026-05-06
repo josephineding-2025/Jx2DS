@@ -163,25 +163,34 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     }
   }, [applyPatch, data?.user.income, flash]);
 
-  const breakChallenge = useCallback(
-    async (challengeId: string, penaltyAmount: number) => {
+  const challengeAction = useCallback(
+    async (challengeId: string, completed: boolean, penaltyAmount: number) => {
       setBusy("challenge");
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const d = new Date();
+        const today = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
         const res = await fetch("/api/kawan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ challengeId, date: today }),
+          body: JSON.stringify({ challengeId, date: today, completed }),
         });
-        const result = await readJson<DemoStatePatch>(res);
+        const result = await readJson<DemoStatePatch & { milestone?: number }>(res);
         if (!res.ok)
           throw new Error(result.error ?? "Challenge update failed");
         applyPatch(result);
-        flash(
-          penaltyAmount > 0
-            ? `RM${penaltyAmount} added to the Bali Trip fund`
-            : "Marked as broken",
-        );
+        if (result.milestone) {
+          flash(`Day ${result.milestone} streak! Your squad can see your milestone.`);
+        } else if (completed) {
+          flash("Marked as done for today!");
+        } else {
+          flash(
+            penaltyAmount > 0
+              ? `RM${penaltyAmount} added to the Bali Trip fund`
+              : "Marked as broken",
+          );
+        }
+      } catch (err) {
+        flash(err instanceof Error ? err.message : "Challenge update failed");
       } finally {
         setBusy(null);
       }
@@ -368,7 +377,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 squads={data.squads}
                 activeSquadIndex={activeSquadIndex}
                 onSelectSquad={setActiveSquadIndex}
-                onBreakChallenge={breakChallenge}
+                onChallengeAction={challengeAction}
                 breakingChallenge={busy === "challenge"}
                 onContribute={setContributeSheet}
               />
