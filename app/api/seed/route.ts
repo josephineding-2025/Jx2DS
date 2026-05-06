@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthUserId } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { getDemoState } from '@/lib/demo/state'
 
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
 const DEMO_USER_IDS = [
@@ -34,7 +35,8 @@ const walletBalances: Record<string, number> = {
 
 export async function POST() {
   try {
-    if (!(await getAuthUserId())) {
+    const userId = await getAuthUserId()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -226,7 +228,11 @@ export async function POST() {
       },
     })
 
-    return NextResponse.json({ ok: true, message: 'Demo data seeded successfully' })
+    return NextResponse.json({
+      ok: true,
+      message: 'Demo data seeded successfully',
+      state: await getDemoState(userId),
+    })
   } catch (err) {
     console.error('[seed]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

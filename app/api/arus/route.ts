@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getAuthUserId } from '@/lib/auth'
+import { getBucketsState, getTransactionsState, getWalletBalanceSen } from '@/lib/demo/state'
 import { formatSenToMyr, parseMyrToSen, splitSenByPercentages } from '@/lib/finance/money'
 
 export async function POST(req: NextRequest) {
@@ -59,7 +60,18 @@ export async function POST(req: NextRequest) {
       data: { balanceSen: { increment: amountSen } },
     })
 
-    return NextResponse.json({ allocations })
+    const [updatedBuckets, transactions, walletBalanceSen] = await Promise.all([
+      getBucketsState(userId),
+      getTransactionsState(userId),
+      getWalletBalanceSen(userId),
+    ])
+
+    return NextResponse.json({
+      allocations,
+      buckets: updatedBuckets,
+      transactions,
+      walletBalanceSen,
+    })
   } catch (err) {
     console.error('[arus]', err)
     return NextResponse.json({ error: 'Arus allocation failed' }, { status: 500 })

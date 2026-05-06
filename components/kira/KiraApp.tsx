@@ -20,6 +20,24 @@ import { TransferSheet } from "./sheets/TransferSheet";
 import { VoiceSheet } from "./sheets/VoiceSheet";
 import { RewindLoadingOverlay, RewindStoryOverlay } from "./RewindStory";
 
+type ApiError = { error?: string };
+type DemoStatePatch = Partial<
+  Pick<
+    DemoState,
+    | "walletBalanceSen"
+    | "transactions"
+    | "debts"
+    | "buckets"
+    | "musimEvents"
+    | "squads"
+    | "transfers"
+  >
+>;
+
+async function readJson<T>(res: Response) {
+  return (await res.json()) as T & ApiError;
+}
+
 export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   const [data, setData] = useState<DemoState | null>(initialState);
   const [activeTab, setActiveTab] = useState<TabId>("home");
@@ -51,10 +69,8 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
 
   const router = useRouter();
 
-  const refresh = useCallback(async () => {
-    const res = await fetch(`/api/demo-state`);
-    if (!res.ok) throw new Error("Could not load account state");
-    setData((await res.json()) as DemoState);
+  const applyPatch = useCallback((patch: DemoStatePatch) => {
+    setData((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
   const flash = useCallback((message: string) => {
@@ -66,13 +82,14 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     setBusy("seed");
     try {
       const res = await fetch("/api/seed", { method: "POST" });
-      if (!res.ok) throw new Error("Seed failed");
-      await refresh();
+      const result = await readJson<{ state: DemoState | null }>(res);
+      if (!res.ok) throw new Error(result.error ?? "Seed failed");
+      setData(result.state);
       flash("Account ready");
     } finally {
       setBusy(null);
     }
-  }, [flash, refresh]);
+  }, [flash]);
 
   const saveExpense = useCallback(
     async (expense: ParsedExpense, source: "voice" | "receipt") => {
@@ -83,8 +100,9 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ source, expense }),
         });
-        if (!res.ok) throw new Error("Save failed");
-        await refresh();
+        const result = await readJson<DemoStatePatch>(res);
+        if (!res.ok) throw new Error(result.error ?? "Save failed");
+        applyPatch(result);
         setSheet(null);
         setSheetKey((k) => k + 1);
         setActiveTab("duit");
@@ -93,7 +111,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         setBusy(null);
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const reconcile = useCallback(
@@ -105,15 +123,24 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ senderName: name, amount }),
         });
-        const result = await res.json();
+        const result = await readJson<
+          DemoStatePatch & {
+            matched: boolean;
+            debtRecordId: string | null;
+            debtorName: string | null;
+            context: string | null;
+            delta: number | null;
+            remainingBalance: number | null;
+          }
+        >(res);
         if (!res.ok) throw new Error(result.error ?? "Reconcile failed");
-        await refresh();
+        applyPatch(result);
         flash(result.matched ? `${name} repayment matched` : "No debt matched");
       } finally {
         setBusy(null);
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const simulateSalary = useCallback(async () => {
@@ -126,14 +153,15 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: income }),
       });
-      if (!res.ok) throw new Error("Arus failed");
-      await refresh();
+      const result = await readJson<DemoStatePatch>(res);
+      if (!res.ok) throw new Error(result.error ?? "Arus failed");
+      applyPatch(result);
       flash("Salary split into buckets");
       window.setTimeout(() => setSalaryPulse(false), 1800);
     } finally {
       setBusy(null);
     }
-  }, [data?.user.income, flash, refresh]);
+  }, [applyPatch, data?.user.income, flash]);
 
   const breakChallenge = useCallback(
     async (challengeId: string, penaltyAmount: number) => {
@@ -145,8 +173,10 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ challengeId, date: today }),
         });
-        if (!res.ok) throw new Error("Challenge update failed");
-        await refresh();
+        const result = await readJson<DemoStatePatch>(res);
+        if (!res.ok)
+          throw new Error(result.error ?? "Challenge update failed");
+        applyPatch(result);
         flash(
           penaltyAmount > 0
             ? `RM${penaltyAmount} added to the Bali Trip fund`
@@ -156,7 +186,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         setBusy(null);
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const contribute = useCallback(
@@ -168,15 +198,16 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ bucketId, amount }),
         });
-        if (!res.ok) throw new Error("Contribute failed");
-        await refresh();
+        const result = await readJson<DemoStatePatch>(res);
+        if (!res.ok) throw new Error(result.error ?? "Contribute failed");
+        applyPatch(result);
         setContributeSheet(null);
         flash(`RM${amount} added to the fund`);
       } finally {
         setBusy(null);
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const toggleMusimAutoSave = useCallback(
@@ -187,14 +218,15 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eventId, enabled }),
         });
-        if (!res.ok) throw new Error("Toggle failed");
-        await refresh();
+        const result = await readJson<DemoStatePatch>(res);
+        if (!res.ok) throw new Error(result.error ?? "Toggle failed");
+        applyPatch(result);
         flash(enabled ? "Auto-save enabled" : "Auto-save disabled");
       } catch {
         flash("Failed to update setting");
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const sendTransfer = useCallback(
@@ -218,9 +250,9 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
             note,
           }),
         });
-        const result = await res.json();
+        const result = await readJson<DemoStatePatch>(res);
         if (!res.ok) throw new Error(result.error ?? "Transfer failed");
-        await refresh();
+        applyPatch(result);
         setTransferSheet(null);
         flash(
           debtRecordId ? "Debt settled — payment sent" : `RM ${amountMyr} sent`,
@@ -231,7 +263,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         setBusy(null);
       }
     },
-    [flash, refresh],
+    [applyPatch, flash],
   );
 
   const openRewind = useCallback(async () => {
@@ -258,7 +290,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     } finally {
       setRewindLoading(false);
     }
-  }, [rewindStory, flash]);
+  }, [data, rewindStory, flash]);
 
   const applyRewindCermin = useCallback((key: string, amount: number) => {
     if (key === "food") setCerminFood(Math.min(Math.round(amount), 400));
@@ -378,6 +410,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           onContribute={contribute}
         />
         <TransferSheet
+          key={transferSheet ? `transfer-${transferSheet.toUserId}-${transferSheet.debtRecordId ?? "direct"}-${transferSheet.amountMyr}` : "transfer-closed"}
           open={transferSheet !== null}
           busy={busy === "transfer"}
           onClose={() => setTransferSheet(null)}

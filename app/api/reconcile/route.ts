@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getAuthUserId } from '@/lib/auth'
+import { getDebtsState, getTransactionsState, getWalletBalanceSen } from '@/lib/demo/state'
 import { parseMyrToSen, sanitizeMyr } from '@/lib/finance/money'
 import { findBestDebtMatch } from '@/lib/finance/reconcile'
 
@@ -31,7 +32,14 @@ export async function POST(req: NextRequest) {
     const match = findBestDebtMatch(senderName, amount, debtsForMatch)
 
     if (!match) {
-      return NextResponse.json({ matched: false, debtRecordId: null, debtorName: null, context: null, delta: null, remainingBalance: null })
+      return NextResponse.json({
+        matched: false,
+        debtRecordId: null,
+        debtorName: null,
+        context: null,
+        delta: null,
+        remainingBalance: null,
+      })
     }
 
     const sanitizedAmount = sanitizeMyr(amount)
@@ -64,6 +72,12 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
+    const [debts, transactions, walletBalanceSen] = await Promise.all([
+      getDebtsState(userId),
+      getTransactionsState(userId),
+      getWalletBalanceSen(userId),
+    ])
+
     return NextResponse.json({
       matched: true,
       debtRecordId: match.id,
@@ -71,6 +85,9 @@ export async function POST(req: NextRequest) {
       context: match.context,
       delta,
       remainingBalance: newStatus === 'partial' ? Number(pendingDebts.find(d => d.id === match.id)!.amount) - sanitizedAmount : 0,
+      debts,
+      transactions,
+      walletBalanceSen,
     })
   } catch (err) {
     console.error('[reconcile]', err)

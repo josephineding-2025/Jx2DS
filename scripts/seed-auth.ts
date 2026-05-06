@@ -35,8 +35,6 @@ const PRESET_USERS = [
   },
 ] as const;
 
-const USER_IDS = [JINSENG_ID, JOSEPHINE_ID];
-
 const WALLET_BALANCES_SEN: Record<string, bigint> = {
   [JINSENG_ID]: BigInt(280000), // RM 2,800.00
   [JOSEPHINE_ID]: BigInt(350000), // RM 3,500.00

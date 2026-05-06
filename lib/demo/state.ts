@@ -2,66 +2,275 @@ import { prisma } from "@/lib/db";
 import { calcMusimEvents } from "@/lib/finance/musim";
 import { DEMO_USER_ID } from "@/lib/demo/seed";
 
-export async function getDemoState(userId: string = DEMO_USER_ID) {
+type DecimalLike = { toString(): string };
+
+type TransactionRecord = {
+  id: string;
+  userId: string;
+  amount: DecimalLike;
+  category: string;
+  merchant: string | null;
+  date: Date;
+  source: string;
+  notes: string | null;
+  createdAt: Date;
+};
+
+type DebtRecordRow = {
+  id: string;
+  creditorId: string;
+  debtorName: string;
+  amount: DecimalLike;
+  context: string | null;
+  transactionId: string | null;
+  status: string;
+  direction: string;
+  settledAt: Date | null;
+  createdAt: Date;
+};
+
+type BucketRecord = {
+  id: string;
+  userId: string;
+  name: string;
+  percentage: number;
+  balance: DecimalLike;
+  type: string;
+};
+
+type MusimEventRecord = {
+  id: string;
+  eventName: string;
+  eventDate: Date;
+  estimatedCost: DecimalLike;
+  category: string;
+  autoSaveEnabled: boolean;
+};
+
+type SharedBucketRecord = {
+  id: string;
+  name: string;
+  balance: DecimalLike;
+  targetAmount: DecimalLike | null;
+  members: Array<{
+    userId: string;
+    contribution: DecimalLike;
+    user: { name: string };
+  }>;
+};
+
+type ChallengeRecord = {
+  id: string;
+  squadId: string;
+  name: string;
+  description: string | null;
+  startDate: Date;
+  endDate: Date;
+  penaltyAmount: DecimalLike;
+  completions: Array<{
+    challengeId: string;
+    userId: string;
+    date: Date;
+    completed: boolean;
+  }>;
+};
+
+type TransferRecord = {
+  id: string;
+  fromUserId: string;
+  fromUser: { name: string };
+  toUserId: string;
+  toUser: { name: string };
+  amountSen: bigint;
+  status: string;
+  note: string | null;
+  createdAt: Date;
+};
+
+export function toTransactionState(transaction: TransactionRecord) {
+  return {
+    id: transaction.id,
+    userId: transaction.userId,
+    amount: Number(transaction.amount),
+    category: transaction.category,
+    merchant: transaction.merchant,
+    date: transaction.date.toISOString().split("T")[0],
+    source: transaction.source,
+    notes: transaction.notes,
+    createdAt: transaction.createdAt.toISOString(),
+  };
+}
+
+export function toDebtState(debt: DebtRecordRow) {
+  return {
+    id: debt.id,
+    creditorId: debt.creditorId,
+    debtorName: debt.debtorName,
+    amount: Number(debt.amount),
+    context: debt.context,
+    transactionId: debt.transactionId,
+    status: debt.status as "pending" | "settled" | "partial",
+    direction: debt.direction as "owe_me" | "i_owe",
+    settledAt: debt.settledAt?.toISOString() ?? null,
+    createdAt: debt.createdAt.toISOString(),
+  };
+}
+
+export function toBucketState(bucket: BucketRecord) {
+  return {
+    id: bucket.id,
+    userId: bucket.userId,
+    name: bucket.name,
+    percentage: bucket.percentage,
+    balance: Number(bucket.balance),
+    type: bucket.type as "savings" | "bills" | "flex",
+  };
+}
+
+export function toMusimEventState(event: MusimEventRecord) {
+  return calcMusimEvents([
+    {
+      id: event.id,
+      eventName: event.eventName,
+      eventDate: event.eventDate,
+      estimatedCost: Number(event.estimatedCost),
+      category: event.category,
+      autoSaveEnabled: event.autoSaveEnabled,
+    },
+  ])[0] ?? null;
+}
+
+export function toSharedBucketState(bucket: SharedBucketRecord) {
+  return {
+    id: bucket.id,
+    name: bucket.name,
+    balance: Number(bucket.balance),
+    targetAmount: bucket.targetAmount ? Number(bucket.targetAmount) : null,
+    members: bucket.members.map((member) => ({
+      userId: member.userId,
+      name: member.user.name,
+      contribution: Number(member.contribution),
+    })),
+  };
+}
+
+export function toChallengeState(challenge: ChallengeRecord) {
+  return {
+    id: challenge.id,
+    squadId: challenge.squadId,
+    name: challenge.name,
+    description: challenge.description,
+    startDate: challenge.startDate.toISOString().split("T")[0],
+    endDate: challenge.endDate.toISOString().split("T")[0],
+    penaltyAmount: Number(challenge.penaltyAmount),
+    completions: challenge.completions.map((completion) => ({
+      challengeId: completion.challengeId,
+      userId: completion.userId,
+      date: completion.date.toISOString().split("T")[0],
+      completed: completion.completed,
+    })),
+  };
+}
+
+export function toTransferState(transfer: TransferRecord, userId: string) {
+  return {
+    id: transfer.id,
+    fromUserId: transfer.fromUserId,
+    fromUserName: transfer.fromUser.name,
+    toUserId: transfer.toUserId,
+    toUserName: transfer.toUser.name,
+    amountSen: transfer.amountSen.toString(),
+    direction: transfer.fromUserId === userId ? "sent" : "received",
+    status: transfer.status,
+    note: transfer.note,
+    createdAt: transfer.createdAt.toISOString(),
+  };
+}
+
+export async function getWalletBalanceSen(userId: string) {
+  const walletAccount = await prisma.ledgerAccount.findUnique({
+    where: { userId },
+    select: { balanceSen: true },
+  });
+
+  return walletAccount?.balanceSen?.toString() ?? "0";
+}
+
+export async function getTransactionsState(userId: string) {
+  const transactions = await prisma.transaction.findMany({
+    where: { userId },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: 40,
+  });
+
+  return transactions.map(toTransactionState);
+}
+
+export async function getDebtsState(userId: string) {
+  const debts = await prisma.debtRecord.findMany({
+    where: { creditorId: userId },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+  });
+
+  return debts.map(toDebtState);
+}
+
+export async function getBucketsState(userId: string) {
+  const buckets = await prisma.bucket.findMany({
+    where: { userId },
+    orderBy: { percentage: "asc" },
+  });
+
+  return buckets.map(toBucketState);
+}
+
+export async function getMusimEventsState(userId: string) {
+  const events = await prisma.musimEvent.findMany({
+    where: { userId },
+    orderBy: { eventDate: "asc" },
+  });
+
+  return calcMusimEvents(
+    events.map((event) => ({
+      id: event.id,
+      eventName: event.eventName,
+      eventDate: event.eventDate,
+      estimatedCost: Number(event.estimatedCost),
+      category: event.category,
+      autoSaveEnabled: event.autoSaveEnabled,
+    })),
+  );
+}
+
+export async function getTransfersState(userId: string) {
+  const transfers = await prisma.transfer.findMany({
+    where: {
+      OR: [{ fromUserId: userId }, { toUserId: userId }],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    include: {
+      fromUser: { select: { id: true, name: true } },
+      toUser: { select: { id: true, name: true } },
+    },
+  });
+
+  return transfers.map((transfer) => toTransferState(transfer, userId));
+}
+
+export async function getSquadsState(userId: string) {
   const today = new Date();
-
-  const [
-    user,
-    transactions,
-    debts,
-    buckets,
-    musimRows,
-    walletAccount,
-    transferRows,
-  ] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
-    prisma.transaction.findMany({
-      where: { userId },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      take: 40,
-    }),
-    prisma.debtRecord.findMany({
-      where: { creditorId: userId },
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.bucket.findMany({
-      where: { userId },
-      orderBy: { percentage: "asc" },
-    }),
-    prisma.musimEvent.findMany({
-      where: { userId },
-      orderBy: { eventDate: "asc" },
-    }),
-    prisma.ledgerAccount.findUnique({
-      where: { userId },
-      select: { balanceSen: true },
-    }),
-    prisma.transfer.findMany({
-      where: {
-        OR: [{ fromUserId: userId }, { toUserId: userId }],
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: {
-        fromUser: { select: { id: true, name: true } },
-        toUser: { select: { id: true, name: true } },
-      },
-    }),
-  ]);
-
-  if (!user) return null;
-
   const squadMemberships = await prisma.squadMember.findMany({
     where: { userId },
     select: { squadId: true },
   });
-  const squadIds = squadMemberships.map((m) => m.squadId);
+  const squadIds = squadMemberships.map((membership) => membership.squadId);
 
   const squadRows = await prisma.squad.findMany({
     where: { id: { in: squadIds } },
   });
 
-  const squads = await Promise.all(
+  return Promise.all(
     squadRows.map(async (squad) => {
       const [streaks, sharedBucket, challenge] = await Promise.all([
         prisma.squadStreak.findMany({
@@ -105,52 +314,35 @@ export async function getDemoState(userId: string = DEMO_USER_ID) {
           savingsRate: Number(streak.savingsRate),
           isCurrentUser: streak.userId === userId,
         })),
-        sharedBucket: sharedBucket
-          ? {
-              id: sharedBucket.id,
-              name: sharedBucket.name,
-              balance: Number(sharedBucket.balance),
-              targetAmount: sharedBucket.targetAmount
-                ? Number(sharedBucket.targetAmount)
-                : null,
-              members: sharedBucket.members.map((member) => ({
-                userId: member.userId,
-                name: member.user.name,
-                contribution: Number(member.contribution),
-              })),
-            }
-          : null,
-        challenge: challenge
-          ? {
-              id: challenge.id,
-              squadId: challenge.squadId,
-              name: challenge.name,
-              description: challenge.description,
-              startDate: challenge.startDate.toISOString().split("T")[0],
-              endDate: challenge.endDate.toISOString().split("T")[0],
-              penaltyAmount: Number(challenge.penaltyAmount),
-              completions: challenge.completions.map((c) => ({
-                challengeId: c.challengeId,
-                userId: c.userId,
-                date: c.date.toISOString().split("T")[0],
-                completed: c.completed,
-              })),
-            }
-          : null,
+        sharedBucket: sharedBucket ? toSharedBucketState(sharedBucket) : null,
+        challenge: challenge ? toChallengeState(challenge) : null,
       };
     }),
   );
+}
 
-  const musimEvents = calcMusimEvents(
-    musimRows.map((event) => ({
-      id: event.id,
-      eventName: event.eventName,
-      eventDate: event.eventDate,
-      estimatedCost: Number(event.estimatedCost),
-      category: event.category,
-      autoSaveEnabled: event.autoSaveEnabled,
-    })),
-  );
+export async function getDemoState(userId: string = DEMO_USER_ID) {
+  const [
+    user,
+    transactions,
+    debts,
+    buckets,
+    musimEvents,
+    walletBalanceSen,
+    transfers,
+    squads,
+  ] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId } }),
+    getTransactionsState(userId),
+    getDebtsState(userId),
+    getBucketsState(userId),
+    getMusimEventsState(userId),
+    getWalletBalanceSen(userId),
+    getTransfersState(userId),
+    getSquadsState(userId),
+  ]);
+
+  if (!user) return null;
 
   return {
     user: {
@@ -159,50 +351,11 @@ export async function getDemoState(userId: string = DEMO_USER_ID) {
       income: Number(user.income),
       salaryDay: user.salaryDay,
     },
-    walletBalanceSen: walletAccount?.balanceSen?.toString() ?? "0",
-    transfers: transferRows.map((transfer) => ({
-      id: transfer.id,
-      fromUserId: transfer.fromUserId,
-      fromUserName: transfer.fromUser.name,
-      toUserId: transfer.toUserId,
-      toUserName: transfer.toUser.name,
-      amountSen: transfer.amountSen.toString(),
-      direction: transfer.fromUserId === userId ? "sent" : "received",
-      status: transfer.status,
-      note: transfer.note,
-      createdAt: transfer.createdAt.toISOString(),
-    })),
-    transactions: transactions.map((transaction) => ({
-      id: transaction.id,
-      userId: transaction.userId,
-      amount: Number(transaction.amount),
-      category: transaction.category,
-      merchant: transaction.merchant,
-      date: transaction.date.toISOString().split("T")[0],
-      source: transaction.source,
-      notes: transaction.notes,
-      createdAt: transaction.createdAt.toISOString(),
-    })),
-    debts: debts.map((debt) => ({
-      id: debt.id,
-      creditorId: debt.creditorId,
-      debtorName: debt.debtorName,
-      amount: Number(debt.amount),
-      context: debt.context,
-      transactionId: debt.transactionId,
-      status: debt.status as "pending" | "settled" | "partial",
-      direction: debt.direction as "owe_me" | "i_owe",
-      settledAt: debt.settledAt?.toISOString() ?? null,
-      createdAt: debt.createdAt.toISOString(),
-    })),
-    buckets: buckets.map((bucket) => ({
-      id: bucket.id,
-      userId: bucket.userId,
-      name: bucket.name,
-      percentage: bucket.percentage,
-      balance: Number(bucket.balance),
-      type: bucket.type as "savings" | "bills" | "flex",
-    })),
+    walletBalanceSen,
+    transfers,
+    transactions,
+    debts,
+    buckets,
     musimEvents,
     squads,
   };

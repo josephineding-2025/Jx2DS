@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatSenToMyr, parseMyrToSen } from "@/lib/finance/money";
 import { getAuthUserId } from "@/lib/auth";
+import {
+  getDebtsState,
+  getTransactionsState,
+  getWalletBalanceSen,
+  toDebtState,
+  toTransactionState,
+} from "@/lib/demo/state";
 import type { ParsedExpense } from "@/types";
 
 type SaveTransactionBody = {
@@ -88,26 +95,21 @@ export async function POST(req: NextRequest) {
       });
 
       return {
-        transaction: {
-          id: transaction.id,
-          userId: transaction.userId,
-          amount: Number(transaction.amount),
-          category: transaction.category,
-          merchant: transaction.merchant,
-          date: transaction.date.toISOString().split("T")[0],
-          source: transaction.source,
-          createdAt: transaction.createdAt.toISOString(),
-        },
-        debts: debts.map((debt) => ({
-          id: debt.id,
-          debtorName: debt.debtorName,
-          amount: Number(debt.amount),
-          status: debt.status,
-        })),
+        transaction: toTransactionState(transaction),
+        debts: debts.map(toDebtState),
       };
     });
 
-    return NextResponse.json(saved, { status: 201 });
+    const [transactions, debts, walletBalanceSen] = await Promise.all([
+      getTransactionsState(userId),
+      getDebtsState(userId),
+      getWalletBalanceSen(userId),
+    ]);
+
+    return NextResponse.json(
+      { ...saved, transactions, debts, walletBalanceSen },
+      { status: 201 },
+    );
   } catch (err) {
     console.error("[transactions]", err);
     return NextResponse.json(

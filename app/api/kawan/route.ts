@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSquadsState, toChallengeState } from "@/lib/demo/state";
 
 type ChallengeBreakBody = {
   challengeId: string;
@@ -49,18 +50,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       penaltyAmount: Number(challenge.penaltyAmount),
-      challenge: updated
-        ? {
-            ...updated,
-            penaltyAmount: Number(updated.penaltyAmount),
-            startDate: updated.startDate.toISOString().split("T")[0],
-            endDate: updated.endDate.toISOString().split("T")[0],
-            completions: updated.completions.map((c) => ({
-              ...c,
-              date: c.date.toISOString().split("T")[0],
-            })),
-          }
-        : null,
+      challenge: updated ? toChallengeState(updated) : null,
+      squads: await getSquadsState(userId),
     });
   } catch (err) {
     console.error("[kawan]", err);

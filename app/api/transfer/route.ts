@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth";
+import { getDebtsState, getTransfersState, getWalletBalanceSen } from "@/lib/demo/state";
 import { createTransfer } from "@/lib/finance/transfer";
 
 export async function POST(req: NextRequest) {
@@ -36,7 +37,16 @@ export async function POST(req: NextRequest) {
       note: note ?? undefined,
     });
 
-    return NextResponse.json({ ok: true, transfer: result }, { status: 201 });
+    const [transfers, debts, walletBalanceSen] = await Promise.all([
+      getTransfersState(fromUserId),
+      getDebtsState(fromUserId),
+      getWalletBalanceSen(fromUserId),
+    ]);
+
+    return NextResponse.json(
+      { ok: true, transfer: result, transfers, debts, walletBalanceSen },
+      { status: 201 },
+    );
   } catch (err) {
     console.error("[transfer]", err);
     const message = err instanceof Error ? err.message : "Transfer failed";

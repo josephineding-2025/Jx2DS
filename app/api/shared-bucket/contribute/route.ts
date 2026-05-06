@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth";
+import { getSquadsState, getWalletBalanceSen, toSharedBucketState } from "@/lib/demo/state";
 import { prisma } from "@/lib/db";
 import { parseMyrToSen, sanitizeMyr } from "@/lib/finance/money";
 
@@ -47,19 +48,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      bucket: bucket
-        ? {
-            id: bucket.id,
-            name: bucket.name,
-            balance: Number(bucket.balance),
-            targetAmount: bucket.targetAmount ? Number(bucket.targetAmount) : null,
-            members: bucket.members.map((m) => ({
-              userId: m.userId,
-              name: m.user.name,
-              contribution: Number(m.contribution),
-            })),
-          }
-        : null,
+      bucket: bucket ? toSharedBucketState(bucket) : null,
+      squads: await getSquadsState(userId),
+      walletBalanceSen: await getWalletBalanceSen(userId),
     });
   } catch (err) {
     console.error("[shared-bucket/contribute]", err);

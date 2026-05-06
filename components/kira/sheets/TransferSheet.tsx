@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { BottomSheet, SheetHeader } from "../ui";
 import { card, primaryButton } from "../utils";
@@ -25,16 +25,9 @@ export function TransferSheet({
   const [amount, setAmount] = useState(amountMyr);
   const [note, setNote] = useState("");
 
-  useMemo(() => {
-    if (open) {
-      setAmount(amountMyr);
-      setNote("");
-    }
-  }, [open, amountMyr]);
-
   return (
     <BottomSheet open={open} onClose={onClose}>
-      <SheetHeader label="Send Money" onClose={onClose} />
+      <SheetHeader label={debtRecordId ? "Settle Debt" : "Send Money"} onClose={onClose} />
       <div className="mt-4 grid gap-3">
         <div className={card("bg-[#1E1E30] p-4")}>
           <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Recipient</span>
