@@ -1257,9 +1257,15 @@ function ParsedExpenseCard({
               />
             </div>
           ))}
-          <em className="text-right text-xs font-black not-italic text-[#22D3EE]">
-            {formatMoney(parsed.per_person)} each
-          </em>
+          {parsed.debt_records.every(d => d.amount === parsed.debt_records[0].amount) ? (
+            <em className="text-right text-xs font-black not-italic text-[#22D3EE]">
+              {formatMoney(parsed.per_person)} each
+            </em>
+          ) : (
+            <em className="text-right text-xs font-black not-italic text-[#22D3EE]">
+              {formatMoney(parsed.debt_records.reduce((s, d) => s + d.amount, 0))} owed to you
+            </em>
+          )}
         </div>
       )}
       <button className={primaryButton("w-full")} onClick={onSave} disabled={busy}>
