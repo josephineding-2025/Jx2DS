@@ -13,14 +13,13 @@ model User {
   email     String?  @unique
   income    Decimal  @default(0) @db.Decimal(10, 2)
   salaryDay Int?
-  squadId   String?
   createdAt DateTime @default(now())
 
   transactions          Transaction[]
   debtRecords           DebtRecord[]
   buckets               Bucket[]
   musimEvents           MusimEvent[]
-  squadMember           SquadMember[]
+  squadMemberships      SquadMember[]
   squadStreaks           SquadStreak[]
   sharedBucketMembers   SharedBucketMember[]
   challengeCompletions  ChallengeCompletion[]

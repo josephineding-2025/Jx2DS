@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getAuthUserId } from '@/lib/auth'
 import { parseMyrToSen, sanitizeMyr } from '@/lib/finance/money'
 import { findBestDebtMatch } from '@/lib/finance/reconcile'
 
 export async function POST(req: NextRequest) {
   try {
-    const { senderName, amount, userId } = await req.json()
-    if (!senderName || !amount || !userId) {
-      return NextResponse.json({ error: 'senderName, amount, userId are required' }, { status: 400 })
+    const userId = await getAuthUserId()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { senderName, amount } = await req.json()
+    if (!senderName || !amount) {
+      return NextResponse.json({ error: 'senderName and amount are required' }, { status: 400 })
     }
 
     const pendingDebts = await prisma.debtRecord.findMany({

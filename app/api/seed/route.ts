@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getAuthUserId } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
@@ -10,8 +11,18 @@ const DEMO_USER_IDS = [
   '00000000-0000-0000-0000-000000000005',
 ]
 const DEMO_SQUAD_ID = '00000000-0000-0000-0000-000000000010'
+const DEMO_SQUAD_2_ID = '00000000-0000-0000-0000-000000000011'
 const DEMO_SHARED_BUCKET_ID = '00000000-0000-0000-0000-000000000020'
+const DEMO_SHARED_BUCKET_2_ID = '00000000-0000-0000-0000-000000000021'
 const DEMO_CHALLENGE_ID = '00000000-0000-0000-0000-000000000030'
+const DEMO_CHALLENGE_2_ID = '00000000-0000-0000-0000-000000000031'
+
+const SQUAD_1_MEMBERS = DEMO_USER_IDS
+const SQUAD_2_MEMBERS = [
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000005',
+]
 
 const walletBalances: Record<string, number> = {
   '00000000-0000-0000-0000-000000000001': 222000,
@@ -23,21 +34,29 @@ const walletBalances: Record<string, number> = {
 
 export async function POST() {
   try {
+    if (!(await getAuthUserId())) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const today = new Date()
     const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d }
-    const startOfWeek = daysAgo(4) // challenge started 4 days ago
+    const startOfWeek = daysAgo(4)
+
+    const allSquadIds = [DEMO_SQUAD_ID, DEMO_SQUAD_2_ID]
+    const allBucketIds = [DEMO_SHARED_BUCKET_ID, DEMO_SHARED_BUCKET_2_ID]
+    const allChallengeIds = [DEMO_CHALLENGE_ID, DEMO_CHALLENGE_2_ID]
 
     // Reset all demo data (order matters for FK constraints)
     await prisma.ledgerEntry.deleteMany({ where: { account: { userId: { in: DEMO_USER_IDS } } } })
     await prisma.ledgerAccount.deleteMany({ where: { userId: { in: DEMO_USER_IDS } } })
     await prisma.transfer.deleteMany({ where: { OR: [{ fromUserId: { in: DEMO_USER_IDS } }, { toUserId: { in: DEMO_USER_IDS } }] } })
-    await prisma.challengeCompletion.deleteMany({ where: { challengeId: DEMO_CHALLENGE_ID } })
-    await prisma.challenge.deleteMany({ where: { id: DEMO_CHALLENGE_ID } })
-    await prisma.sharedBucketMember.deleteMany({ where: { bucketId: DEMO_SHARED_BUCKET_ID } })
-    await prisma.sharedBucket.deleteMany({ where: { id: DEMO_SHARED_BUCKET_ID } })
-    await prisma.squadStreak.deleteMany({ where: { squadId: DEMO_SQUAD_ID } })
-    await prisma.squadMember.deleteMany({ where: { squadId: DEMO_SQUAD_ID } })
-    await prisma.squad.deleteMany({ where: { id: DEMO_SQUAD_ID } })
+    await prisma.challengeCompletion.deleteMany({ where: { challengeId: { in: allChallengeIds } } })
+    await prisma.challenge.deleteMany({ where: { id: { in: allChallengeIds } } })
+    await prisma.sharedBucketMember.deleteMany({ where: { bucketId: { in: allBucketIds } } })
+    await prisma.sharedBucket.deleteMany({ where: { id: { in: allBucketIds } } })
+    await prisma.squadStreak.deleteMany({ where: { squadId: { in: allSquadIds } } })
+    await prisma.squadMember.deleteMany({ where: { squadId: { in: allSquadIds } } })
+    await prisma.squad.deleteMany({ where: { id: { in: allSquadIds } } })
     await prisma.debtRecord.deleteMany({ where: { creditorId: DEMO_USER_ID } })
     await prisma.bucket.deleteMany({ where: { userId: DEMO_USER_ID } })
     await prisma.musimEvent.deleteMany({ where: { userId: DEMO_USER_ID } })
@@ -46,11 +65,11 @@ export async function POST() {
 
     await prisma.user.createMany({
       data: [
-        { id: '00000000-0000-0000-0000-000000000001', name: 'Amirah Zahra', email: 'amirah@demo.kira', income: 2800, salaryDay: 25, squadId: DEMO_SQUAD_ID },
-        { id: '00000000-0000-0000-0000-000000000002', name: 'Ali Haikal', email: 'ali@demo.kira', income: 2400, salaryDay: 25, squadId: DEMO_SQUAD_ID },
-        { id: '00000000-0000-0000-0000-000000000003', name: 'Siti Nurhaliza', email: 'siti@demo.kira', income: 3100, salaryDay: 25, squadId: DEMO_SQUAD_ID },
-        { id: '00000000-0000-0000-0000-000000000004', name: 'Hana Soraya', email: 'hana@demo.kira', income: 2200, salaryDay: 25, squadId: DEMO_SQUAD_ID },
-        { id: '00000000-0000-0000-0000-000000000005', name: 'Danish Irfan', email: 'danish@demo.kira', income: 800, salaryDay: 1, squadId: DEMO_SQUAD_ID },
+        { id: '00000000-0000-0000-0000-000000000001', name: 'Amirah Zahra', email: 'amirah@demo.kira', income: 2800, salaryDay: 25 },
+        { id: '00000000-0000-0000-0000-000000000002', name: 'Ali Haikal', email: 'ali@demo.kira', income: 2400, salaryDay: 25 },
+        { id: '00000000-0000-0000-0000-000000000003', name: 'Siti Nurhaliza', email: 'siti@demo.kira', income: 3100, salaryDay: 25 },
+        { id: '00000000-0000-0000-0000-000000000004', name: 'Hana Soraya', email: 'hana@demo.kira', income: 2200, salaryDay: 25 },
+        { id: '00000000-0000-0000-0000-000000000005', name: 'Danish Irfan', email: 'danish@demo.kira', income: 800, salaryDay: 1 },
       ],
     })
 
@@ -63,9 +82,16 @@ export async function POST() {
       })),
     })
 
+    // Squad 1: "KL Kawan Crew" — all 5 members
     await prisma.squad.create({ data: { id: DEMO_SQUAD_ID, name: 'KL Kawan Crew' } })
     await prisma.squadMember.createMany({
-      data: DEMO_USER_IDS.map(uid => ({ squadId: DEMO_SQUAD_ID, userId: uid })),
+      data: SQUAD_1_MEMBERS.map(uid => ({ squadId: DEMO_SQUAD_ID, userId: uid })),
+    })
+
+    // Squad 2: "Cyberjaya Savers" — Amirah, Siti, Danish
+    await prisma.squad.create({ data: { id: DEMO_SQUAD_2_ID, name: 'Cyberjaya Savers' } })
+    await prisma.squadMember.createMany({
+      data: SQUAD_2_MEMBERS.map(uid => ({ squadId: DEMO_SQUAD_2_ID, userId: uid })),
     })
 
     await prisma.bucket.createMany({
@@ -102,6 +128,7 @@ export async function POST() {
       ],
     })
 
+    // Squad 1 streaks
     await prisma.squadStreak.createMany({
       data: [
         { userId: '00000000-0000-0000-0000-000000000001', squadId: DEMO_SQUAD_ID, currentStreak: 15, longestStreak: 15, lastActive: today, savingsRate: 22.5 },
@@ -109,6 +136,15 @@ export async function POST() {
         { userId: '00000000-0000-0000-0000-000000000003', squadId: DEMO_SQUAD_ID, currentStreak: 20, longestStreak: 20, lastActive: today, savingsRate: 31.0 },
         { userId: '00000000-0000-0000-0000-000000000004', squadId: DEMO_SQUAD_ID, currentStreak: 7, longestStreak: 14, lastActive: today, savingsRate: 18.0 },
         { userId: '00000000-0000-0000-0000-000000000005', squadId: DEMO_SQUAD_ID, currentStreak: 3, longestStreak: 9, lastActive: daysAgo(1), savingsRate: 12.5 },
+      ],
+    })
+
+    // Squad 2 streaks
+    await prisma.squadStreak.createMany({
+      data: [
+        { userId: '00000000-0000-0000-0000-000000000001', squadId: DEMO_SQUAD_2_ID, currentStreak: 8, longestStreak: 10, lastActive: today, savingsRate: 19.0 },
+        { userId: '00000000-0000-0000-0000-000000000003', squadId: DEMO_SQUAD_2_ID, currentStreak: 14, longestStreak: 14, lastActive: today, savingsRate: 35.0 },
+        { userId: '00000000-0000-0000-0000-000000000005', squadId: DEMO_SQUAD_2_ID, currentStreak: 5, longestStreak: 7, lastActive: today, savingsRate: 10.0 },
       ],
     })
 
@@ -121,6 +157,7 @@ export async function POST() {
       ],
     })
 
+    // Squad 1 shared bucket
     await prisma.sharedBucket.create({
       data: {
         id: DEMO_SHARED_BUCKET_ID,
@@ -129,12 +166,26 @@ export async function POST() {
         balance: 1350,
         targetAmount: 5000,
         members: {
-          create: DEMO_USER_IDS.map(uid => ({ userId: uid, contribution: 270 })),
+          create: SQUAD_1_MEMBERS.map(uid => ({ userId: uid, contribution: 270 })),
         },
       },
     })
 
-    // Challenge: "No Bubble Tea Week" — started 4 days ago, runs 7 days
+    // Squad 2 shared bucket
+    await prisma.sharedBucket.create({
+      data: {
+        id: DEMO_SHARED_BUCKET_2_ID,
+        squadId: DEMO_SQUAD_2_ID,
+        name: 'Weekly Lunch Fund',
+        balance: 450,
+        targetAmount: 1000,
+        members: {
+          create: SQUAD_2_MEMBERS.map(uid => ({ userId: uid, contribution: 150 })),
+        },
+      },
+    })
+
+    // Squad 1 challenge
     await prisma.challenge.create({
       data: {
         id: DEMO_CHALLENGE_ID,
@@ -142,15 +193,34 @@ export async function POST() {
         name: 'No Bubble Tea Week',
         description: 'Skip boba, pool the savings',
         startDate: startOfWeek,
-        endDate: daysAgo(-2), // ends in 2 days
+        endDate: daysAgo(-2),
         penaltyAmount: 5,
         completions: {
           create: [
-            // Amirah completed days 0-3, today (day 4) is pending
             { userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
             { userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
             { userId: DEMO_USER_ID, date: daysAgo(2), completed: true },
             { userId: DEMO_USER_ID, date: daysAgo(1), completed: true },
+          ],
+        },
+      },
+    })
+
+    // Squad 2 challenge
+    await prisma.challenge.create({
+      data: {
+        id: DEMO_CHALLENGE_2_ID,
+        squadId: DEMO_SQUAD_2_ID,
+        name: 'Save RM50 This Week',
+        description: 'Cut non-essential spending for 7 days',
+        startDate: startOfWeek,
+        endDate: daysAgo(-2),
+        penaltyAmount: 10,
+        completions: {
+          create: [
+            { userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
+            { userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
+            { userId: DEMO_USER_ID, date: daysAgo(2), completed: false },
           ],
         },
       },
@@ -166,7 +236,12 @@ export async function POST() {
 // Reset just the demo-sensitive state without wiping transactions
 export async function DELETE() {
   try {
+    if (!(await getAuthUserId())) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const DEMO_CHALLENGE_ID = '00000000-0000-0000-0000-000000000030'
+    const DEMO_CHALLENGE_2_ID = '00000000-0000-0000-0000-000000000031'
     const today = new Date()
     const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d }
 
@@ -190,14 +265,21 @@ export async function DELETE() {
       where: { id: DEMO_SHARED_BUCKET_ID },
       data: { balance: 1350 },
     })
-    // Reset challenge completions to initial 4 completed days
-    await prisma.challengeCompletion.deleteMany({ where: { challengeId: DEMO_CHALLENGE_ID } })
+    await prisma.sharedBucket.updateMany({
+      where: { id: DEMO_SHARED_BUCKET_2_ID },
+      data: { balance: 450 },
+    })
+    // Reset challenge completions to initial state
+    await prisma.challengeCompletion.deleteMany({ where: { challengeId: { in: [DEMO_CHALLENGE_ID, DEMO_CHALLENGE_2_ID] } } })
     await prisma.challengeCompletion.createMany({
       data: [
         { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
         { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
         { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(2), completed: true },
         { challengeId: DEMO_CHALLENGE_ID, userId: DEMO_USER_ID, date: daysAgo(1), completed: true },
+        { challengeId: DEMO_CHALLENGE_2_ID, userId: DEMO_USER_ID, date: daysAgo(4), completed: true },
+        { challengeId: DEMO_CHALLENGE_2_ID, userId: DEMO_USER_ID, date: daysAgo(3), completed: true },
+        { challengeId: DEMO_CHALLENGE_2_ID, userId: DEMO_USER_ID, date: daysAgo(2), completed: false },
       ],
     })
     // Reset wallet balances to initial amounts

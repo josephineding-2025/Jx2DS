@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getAuthUserId } from '@/lib/auth'
 import { formatSenToMyr, parseMyrToSen, splitSenByPercentages } from '@/lib/finance/money'
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, amount } = await req.json()
-    if (!userId || !amount) {
-      return NextResponse.json({ error: 'userId and amount are required' }, { status: 400 })
+    const userId = await getAuthUserId()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { amount } = await req.json()
+    if (!amount) {
+      return NextResponse.json({ error: 'amount is required' }, { status: 400 })
     }
 
     const buckets = await prisma.bucket.findMany({ where: { userId } })

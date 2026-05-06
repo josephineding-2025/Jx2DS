@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -16,10 +16,21 @@ import { compactFormatter } from "../constants";
 import { Hero, MoneySlider, ProjectionTwin, ScreenScroller, Title } from "../ui";
 import { card, formatMoney } from "../utils";
 
-export function CerminScreen() {
-  const [monthlySavings, setMonthlySavings] = useState(0);
-  const [foodCut, setFoodCut] = useState(0);
-  const [transportCut, setTransportCut] = useState(0);
+export function CerminScreen({
+  monthlySavings,
+  foodCut,
+  transportCut,
+  onMonthlySavingsChange,
+  onFoodCutChange,
+  onTransportCutChange,
+}: {
+  monthlySavings: number;
+  foodCut: number;
+  transportCut: number;
+  onMonthlySavingsChange: (v: number) => void;
+  onFoodCutChange: (v: number) => void;
+  onTransportCutChange: (v: number) => void;
+}) {
   const monthlyDelta = monthlySavings + foodCut + transportCut;
   const series = useMemo(
     () => buildProjection(50, 50 + monthlyDelta, 4200, 23, 85),
@@ -93,9 +104,9 @@ export function CerminScreen() {
         </div>
 
         <div className="mt-4 grid gap-3.5">
-          <MoneySlider label="Monthly savings" value={monthlySavings} min={0} max={600} color="cyan" sign="+" onChange={setMonthlySavings} />
-          <MoneySlider label="Food and drinks" value={foodCut} min={0} max={400} color="amber" sign="-" onChange={setFoodCut} />
-          <MoneySlider label="Transport" value={transportCut} min={0} max={250} color="violet" sign="-" onChange={setTransportCut} />
+          <MoneySlider label="Monthly savings" value={monthlySavings} min={0} max={600} color="cyan" sign="+" onChange={onMonthlySavingsChange} />
+          <MoneySlider label="Food and drinks" value={foodCut} min={0} max={400} color="amber" sign="-" onChange={onFoodCutChange} />
+          <MoneySlider label="Transport" value={transportCut} min={0} max={250} color="violet" sign="-" onChange={onTransportCutChange} />
         </div>
         <p className="mt-3.5 text-center text-[11px] text-zinc-500">
           Assumes 4% p.a. baseline return.

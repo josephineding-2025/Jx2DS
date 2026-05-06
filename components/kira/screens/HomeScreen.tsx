@@ -1,21 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { Camera, Eye, Mic } from "lucide-react";
+import { Camera, Eye, Mic, Sparkles } from "lucide-react";
 import type { DemoState } from "@/lib/demo/state";
 import type { SheetId } from "../constants";
 import { MusimCard, TransactionRow } from "../cards";
 import { Hero, QuickAction, ScreenScroller, SectionHeader } from "../ui";
-import { card, formatMoney, formatSignedMoney, greeting, roundButton } from "../utils";
+import { card, cn, formatMoney, formatSignedMoney, greeting, roundButton } from "../utils";
 
 export function HomeScreen({
   data,
   onOpenSheet,
   onToggleMusimAutoSave,
+  onOpenRewind,
 }: {
   data: DemoState;
   onOpenSheet: (sheet: SheetId) => void;
   onToggleMusimAutoSave: (eventId: string, enabled: boolean) => void;
+  onOpenRewind: () => void;
 }) {
   const balance = Number(data.walletBalanceSen) / 100;
   const savings = data.buckets.find((bucket) => bucket.type === "savings");
@@ -29,6 +31,8 @@ export function HomeScreen({
       .filter((t) => t.date >= cutoffStr)
       .reduce((sum, t) => sum + t.amount, 0);
   }, [data.transactions]);
+
+  const monthName = new Date().toLocaleDateString("en-MY", { month: "long" });
 
   return (
     <>
@@ -56,7 +60,39 @@ export function HomeScreen({
           </div>
         </div>
 
-        <div className="my-6 grid grid-cols-2 gap-3">
+        {/* Kira Rewind Banner */}
+        <button
+          className={cn(
+            "mt-5 w-full text-left overflow-hidden rounded-[22px]",
+            "bg-[radial-gradient(circle_at_80%_50%,rgba(236,72,153,.4),transparent_60%),linear-gradient(135deg,#4C1D95,#831843)]",
+            "border border-[#A78BFA]/30 p-4",
+          )}
+          onClick={onOpenRewind}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="rounded-full bg-[#EC4899] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
+                  NEW
+                </span>
+                <span className="text-[11px] font-black uppercase tracking-[.15em] text-white/50">
+                  Kira Rewind
+                </span>
+              </div>
+              <p className="text-[17px] font-black text-white leading-snug">
+                Your {monthName} story is ready
+              </p>
+              <p className="mt-0.5 text-[12px] text-white/60">
+                See your spending personality →
+              </p>
+            </div>
+            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-white/15">
+              <Sparkles size={22} className="text-white" />
+            </div>
+          </div>
+        </button>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <QuickAction icon={Mic} label="Voice Log" onClick={() => onOpenSheet("voice")} />
           <QuickAction icon={Camera} label="Scan Receipt" onClick={() => onOpenSheet("receipt")} />
         </div>

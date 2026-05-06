@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUserId } from '@/lib/auth'
 import { parseVoiceExpense } from '@/lib/claude/haiku'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await getAuthUserId())) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { transcript } = await req.json()
     if (!transcript || typeof transcript !== 'string') {
       return NextResponse.json({ error: 'transcript is required' }, { status: 400 })

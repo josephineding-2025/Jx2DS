@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DEMO_SQUAD_ID, DEMO_USER_ID } from "@/lib/demo/seed";
+import { getAuthUserId } from "@/lib/auth";
 import { getDemoState } from "@/lib/demo/state";
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId") ?? DEMO_USER_ID;
-    const squadId = searchParams.get("squadId") ?? DEMO_SQUAD_ID;
-    const state = await getDemoState(userId, squadId);
+    const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const state = await getDemoState(userId);
 
     if (!state) {
       return NextResponse.json(

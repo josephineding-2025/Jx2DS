@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 type ChallengeBreakBody = {
   challengeId: string;
-  userId: string;
   date: string;
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const { challengeId, userId, date } = (await req.json()) as ChallengeBreakBody;
+    const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!challengeId || !userId || !date) {
-      return NextResponse.json({ error: "challengeId, userId, and date are required" }, { status: 400 });
+    const { challengeId, date } = (await req.json()) as ChallengeBreakBody;
+
+    if (!challengeId || !date) {
+      return NextResponse.json({ error: "challengeId and date are required" }, { status: 400 });
     }
 
     const challenge = await prisma.challenge.findUnique({ where: { id: challengeId } });

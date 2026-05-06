@@ -1,11 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, LogOut } from "lucide-react";
 import { useCallback, useState } from "react";
-import { DEMO_SQUAD_ID, DEMO_USER_ID } from "@/lib/demo/seed";
+import { useRouter } from "next/navigation";
 import type { DemoState } from "@/lib/demo/state";
-import type { ParsedExpense } from "@/types";
+import type { ParsedExpense, RewindStory } from "@/types";
 import type { SheetId, TabId } from "./constants";
 import { TabBar } from "./ui";
 import { ArusScreen } from "./screens/ArusScreen";
@@ -18,10 +18,12 @@ import { ContributeSheet } from "./sheets/ContributeSheet";
 import { ReceiptSheet } from "./sheets/ReceiptSheet";
 import { TransferSheet } from "./sheets/TransferSheet";
 import { VoiceSheet } from "./sheets/VoiceSheet";
+import { RewindLoadingOverlay, RewindStoryOverlay } from "./RewindStory";
 
 export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   const [data, setData] = useState<DemoState | null>(initialState);
   const [activeTab, setActiveTab] = useState<TabId>("home");
+  const [activeSquadIndex, setActiveSquadIndex] = useState(0);
   const [sheet, setSheet] = useState<SheetId>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -37,10 +39,20 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     debtRecordId: string | null;
   } | null>(null);
 
+  // Cermin slider state — lifted so Rewind can pre-fill them
+  const [cerminSavings, setCerminSavings] = useState(0);
+  const [cerminFood, setCerminFood] = useState(0);
+  const [cerminTransport, setCerminTransport] = useState(0);
+
+  // Rewind state
+  const [rewindOpen, setRewindOpen] = useState(false);
+  const [rewindLoading, setRewindLoading] = useState(false);
+  const [rewindStory, setRewindStory] = useState<RewindStory | null>(null);
+
+  const router = useRouter();
+
   const refresh = useCallback(async () => {
-    const res = await fetch(
-      `/api/demo-state?userId=${DEMO_USER_ID}&squadId=${DEMO_SQUAD_ID}`,
-    );
+    const res = await fetch(`/api/demo-state`);
     if (!res.ok) throw new Error("Could not load account state");
     setData((await res.json()) as DemoState);
   }, []);
@@ -69,12 +81,12 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         const res = await fetch("/api/transactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: DEMO_USER_ID, source, expense }),
+          body: JSON.stringify({ source, expense }),
         });
         if (!res.ok) throw new Error("Save failed");
         await refresh();
         setSheet(null);
-        setSheetKey(k => k + 1);
+        setSheetKey((k) => k + 1);
         setActiveTab("duit");
         flash(source === "voice" ? "Voice expense saved" : "Receipt saved");
       } finally {
@@ -91,7 +103,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         const res = await fetch("/api/reconcile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ senderName: name, amount, userId: DEMO_USER_ID }),
+          body: JSON.stringify({ senderName: name, amount }),
         });
         const result = await res.json();
         if (!res.ok) throw new Error(result.error ?? "Reconcile failed");
@@ -112,7 +124,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
       const res = await fetch("/api/arus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: DEMO_USER_ID, amount: income }),
+        body: JSON.stringify({ amount: income }),
       });
       if (!res.ok) throw new Error("Arus failed");
       await refresh();
@@ -131,11 +143,15 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         const res = await fetch("/api/kawan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ challengeId, userId: DEMO_USER_ID, date: today }),
+          body: JSON.stringify({ challengeId, date: today }),
         });
         if (!res.ok) throw new Error("Challenge update failed");
         await refresh();
-        flash(penaltyAmount > 0 ? `RM${penaltyAmount} added to the Bali Trip fund` : "Marked as broken");
+        flash(
+          penaltyAmount > 0
+            ? `RM${penaltyAmount} added to the Bali Trip fund`
+            : "Marked as broken",
+        );
       } finally {
         setBusy(null);
       }
@@ -150,7 +166,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         const res = await fetch("/api/shared-bucket/contribute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bucketId, userId: DEMO_USER_ID, amount }),
+          body: JSON.stringify({ bucketId, amount }),
         });
         if (!res.ok) throw new Error("Contribute failed");
         await refresh();
@@ -182,7 +198,12 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   );
 
   const sendTransfer = useCallback(
-    async (toUserId: string, amountMyr: string, debtRecordId: string | null, note?: string) => {
+    async (
+      toUserId: string,
+      amountMyr: string,
+      debtRecordId: string | null,
+      note?: string,
+    ) => {
       setBusy("transfer");
       try {
         const idempotencyKey = crypto.randomUUID();
@@ -190,7 +211,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fromUserId: DEMO_USER_ID,
             toUserId,
             amountMyr,
             idempotencyKey,
@@ -202,7 +222,9 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
         if (!res.ok) throw new Error(result.error ?? "Transfer failed");
         await refresh();
         setTransferSheet(null);
-        flash(debtRecordId ? "Debt settled — payment sent" : `RM ${amountMyr} sent`);
+        flash(
+          debtRecordId ? "Debt settled — payment sent" : `RM ${amountMyr} sent`,
+        );
       } catch (err) {
         flash(err instanceof Error ? err.message : "Transfer failed");
       } finally {
@@ -212,6 +234,46 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     [flash, refresh],
   );
 
+  const openRewind = useCallback(async () => {
+    if (rewindStory) {
+      setRewindOpen(true);
+      return;
+    }
+    setRewindLoading(true);
+    setRewindOpen(true);
+    try {
+      const res = await fetch("/api/rewind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: data?.user.id,
+        }),
+      });
+      if (!res.ok) throw new Error("Rewind failed");
+      const story = (await res.json()) as RewindStory;
+      setRewindStory(story);
+    } catch {
+      flash("Could not generate your rewind — try again");
+      setRewindOpen(false);
+    } finally {
+      setRewindLoading(false);
+    }
+  }, [rewindStory, flash]);
+
+  const applyRewindCermin = useCallback((key: string, amount: number) => {
+    if (key === "food") setCerminFood(Math.min(Math.round(amount), 400));
+    else if (key === "transport")
+      setCerminTransport(Math.min(Math.round(amount), 250));
+    else if (key === "savings")
+      setCerminSavings(Math.min(Math.round(amount), 600));
+    setActiveTab("cermin");
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await fetch("/auth/signout", { method: "POST" });
+    router.push("/login");
+  }, [router]);
+
   if (!data) {
     return <SeedScreen busy={busy === "seed"} onSeed={seed} />;
   }
@@ -219,6 +281,14 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   return (
     <main className="min-h-svh bg-[#07070D] text-white">
       <div className="relative mx-auto min-h-svh w-full max-w-[430px] overflow-hidden bg-[#0A0A14]">
+        <button
+          type="button"
+          onClick={signOut}
+          className="absolute right-4 top-4 z-50 rounded-full bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
+          aria-label="Sign out"
+        >
+          <LogOut size={18} />
+        </button>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -233,6 +303,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 data={data}
                 onOpenSheet={setSheet}
                 onToggleMusimAutoSave={toggleMusimAutoSave}
+                onOpenRewind={openRewind}
               />
             )}
             {activeTab === "duit" && (
@@ -240,7 +311,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 debts={data.debts}
                 transactions={data.transactions}
                 transfers={data.transfers}
-                squadMembers={data.squadMembers}
+                squadMembers={data.squads.flatMap((s) => s.members)}
                 onReconcile={reconcile}
                 reconciling={busy === "reconcile"}
                 reconcileName={reconcileName}
@@ -262,16 +333,24 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
             )}
             {activeTab === "kawan" && (
               <KawanScreen
-                members={data.squadMembers}
-                squadName={data.squad?.name ?? "KL Kawan Crew"}
-                sharedBucket={data.sharedBucket}
-                challenge={data.challenge}
+                squads={data.squads}
+                activeSquadIndex={activeSquadIndex}
+                onSelectSquad={setActiveSquadIndex}
                 onBreakChallenge={breakChallenge}
                 breakingChallenge={busy === "challenge"}
                 onContribute={setContributeSheet}
               />
             )}
-            {activeTab === "cermin" && <CerminScreen />}
+            {activeTab === "cermin" && (
+              <CerminScreen
+                monthlySavings={cerminSavings}
+                foodCut={cerminFood}
+                transportCut={cerminTransport}
+                onMonthlySavingsChange={setCerminSavings}
+                onFoodCutChange={setCerminFood}
+                onTransportCutChange={setCerminTransport}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -304,13 +383,33 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           onClose={() => setTransferSheet(null)}
           onSend={(amountMyr, note) => {
             if (transferSheet) {
-              sendTransfer(transferSheet.toUserId, amountMyr, transferSheet.debtRecordId, note);
+              sendTransfer(
+                transferSheet.toUserId,
+                amountMyr,
+                transferSheet.debtRecordId,
+                note,
+              );
             }
           }}
           toUserName={transferSheet?.toUserName ?? ""}
           amountMyr={transferSheet?.amountMyr ?? ""}
           debtRecordId={transferSheet?.debtRecordId ?? null}
         />
+
+        {/* Kira Rewind overlay */}
+        <AnimatePresence>
+          {rewindOpen && rewindLoading && (
+            <RewindLoadingOverlay key="rewind-loading" />
+          )}
+          {rewindOpen && !rewindLoading && rewindStory && (
+            <RewindStoryOverlay
+              key="rewind-story"
+              story={rewindStory}
+              onClose={() => setRewindOpen(false)}
+              onApplyCermin={applyRewindCermin}
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {notice && (

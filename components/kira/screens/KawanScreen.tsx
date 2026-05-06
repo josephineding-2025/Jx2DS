@@ -1,35 +1,35 @@
 "use client";
 
 import { useMemo } from "react";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import type { DemoState } from "@/lib/demo/state";
-import type { SquadMemberItem } from "../constants";
+import type { SquadMemberItem, SquadItem } from "../constants";
 import { DEMO_USER_ID } from "../constants";
 import { LeaderRow } from "../cards";
 import { Avatar, Pill, Progress, ScreenScroller, SectionHeader } from "../ui";
 import { card, cn, formatMoney, secondaryButton } from "../utils";
 
 export function KawanScreen({
-  members,
-  squadName,
-  sharedBucket,
-  challenge,
+  squads,
+  activeSquadIndex,
+  onSelectSquad,
   onBreakChallenge,
   breakingChallenge,
   onContribute,
 }: {
-  members: SquadMemberItem[];
-  squadName: string;
-  sharedBucket: DemoState["sharedBucket"];
-  challenge: DemoState["challenge"];
+  squads: DemoState["squads"];
+  activeSquadIndex: number;
+  onSelectSquad: (index: number) => void;
   onBreakChallenge: (challengeId: string, penaltyAmount: number) => void;
   breakingChallenge: boolean;
   onContribute: (bucketId: string) => void;
 }) {
+  const activeSquad = squads[activeSquadIndex] as SquadItem | undefined;
   const todayStr = new Date().toISOString().split("T")[0];
 
   const challengeStats = useMemo(() => {
-    if (!challenge) return null;
+    if (!activeSquad?.challenge) return null;
+    const challenge = activeSquad.challenge;
     const start = new Date(challenge.startDate + "T00:00:00");
     const end = new Date(challenge.endDate + "T00:00:00");
     const msPerDay = 86400000;
@@ -44,7 +44,15 @@ export function KawanScreen({
     const todayHasRecord = myCompletions.some((c) => c.date === todayStr);
     const progress = Math.round((completedDays / totalDays) * 100);
     return { totalDays, completedDays, todayBroken, todayHasRecord, progress };
-  }, [challenge, todayStr]);
+  }, [activeSquad?.challenge, todayStr]);
+
+  if (!activeSquad) {
+    return (
+      <ScreenScroller>
+        <p className="text-center text-sm text-zinc-400">No squads yet</p>
+      </ScreenScroller>
+    );
+  }
 
   return (
     <ScreenScroller>
@@ -55,29 +63,61 @@ export function KawanScreen({
       <div className="relative mb-4">
         <h1 className="m-0 text-2xl font-black">Kawan Duit</h1>
         <p className="mt-1 text-[13px] font-medium text-zinc-400">
-          {squadName} — {members.length} members
+          {activeSquad.name} — {activeSquad.members.length} members
         </p>
       </div>
 
+      {squads.length > 1 && (
+        <div className={card("relative z-10 mb-3.5 flex gap-2 p-2")}>
+          {squads.map((squad, idx) => (
+            <button
+              key={squad.id}
+              className={cn(
+                "flex flex-1 items-center justify-between rounded-2xl px-3.5 py-2.5 text-left transition-all",
+                idx === activeSquadIndex
+                  ? "bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white"
+                  : "bg-white/5 text-zinc-400 hover:bg-white/10",
+              )}
+              onClick={() => onSelectSquad(idx)}
+            >
+              <div className="min-w-0">
+                <span className={cn(
+                  "block text-[13px] font-black truncate",
+                  idx === activeSquadIndex ? "text-white" : "text-zinc-300",
+                )}>
+                  {squad.name}
+                </span>
+                <span className="block text-[11px] font-bold opacity-70">
+                  {squad.members.length} members
+                </span>
+              </div>
+              {idx !== activeSquadIndex && (
+                <ChevronRight size={14} className="shrink-0 opacity-50" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={card("relative z-10 p-3 pb-1.5")}>
         <SectionHeader title="Leaderboard" action="May" compact />
-        {members.map((member, index) => (
+        {activeSquad.members.map((member: SquadMemberItem, index: number) => (
           <LeaderRow key={member.userId} member={member} rank={index + 1} />
         ))}
       </div>
 
-      {challenge && challengeStats && (
+      {activeSquad.challenge && challengeStats && (
         <div className={card("relative z-10 mt-3.5 p-4")}>
           <Pill>Live</Pill>
-          <h2 className="mb-1 mt-2.5 text-lg font-black">{challenge.name}</h2>
-          <p className="mb-3.5 text-xs text-zinc-400">{challenge.description ?? "Squad challenge"}</p>
+          <h2 className="mb-1 mt-2.5 text-lg font-black">{activeSquad.challenge.name}</h2>
+          <p className="mb-3.5 text-xs text-zinc-400">{activeSquad.challenge.description ?? "Squad challenge"}</p>
           <Progress value={challengeStats.progress} color="pink" />
           <div className="mt-3 flex gap-1.5">
             {Array.from({ length: Math.min(challengeStats.totalDays, 7) }).map((_, day) => {
-              const date = new Date(challenge.startDate + "T00:00:00");
+              const date = new Date(activeSquad.challenge!.startDate + "T00:00:00");
               date.setDate(date.getDate() + day);
               const dateStr = date.toISOString().split("T")[0];
-              const completion = challenge.completions.find(
+              const completion = activeSquad.challenge!.completions.find(
                 (c) => c.date === dateStr && c.userId === DEMO_USER_ID,
               );
               const done = completion?.completed ?? false;
@@ -99,12 +139,12 @@ export function KawanScreen({
           </div>
           <p className="mt-2.5 text-[11px] text-zinc-400">
             {challengeStats.completedDays}/{challengeStats.totalDays} days complete
-            {challenge.penaltyAmount > 0 && ` · RM${challenge.penaltyAmount} penalty if broken`}
+            {activeSquad.challenge.penaltyAmount > 0 && ` · RM${activeSquad.challenge.penaltyAmount} penalty if broken`}
           </p>
           {!challengeStats.todayHasRecord && (
             <button
               className={cn(secondaryButton("mt-3 w-full text-xs"), "border-[#F59E0B]/30 text-[#F59E0B]")}
-              onClick={() => onBreakChallenge(challenge.id, challenge.penaltyAmount)}
+              onClick={() => onBreakChallenge(activeSquad.challenge!.id, activeSquad.challenge!.penaltyAmount)}
               disabled={breakingChallenge}
             >
               {breakingChallenge ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
@@ -119,30 +159,30 @@ export function KawanScreen({
         </div>
       )}
 
-      {sharedBucket && (
+      {activeSquad.sharedBucket && (
         <div className={card("relative z-10 mt-3.5 p-4")}>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="m-0 text-lg font-black">{sharedBucket.name}</h2>
+            <h2 className="m-0 text-lg font-black">{activeSquad.sharedBucket.name}</h2>
             <Pill cyan>Active</Pill>
           </div>
           <div className="my-2.5 flex items-baseline gap-2">
             <strong className="text-2xl font-black text-[#22D3EE]">
-              {formatMoney(sharedBucket.balance)}
+              {formatMoney(activeSquad.sharedBucket.balance)}
             </strong>
             <span className="text-[13px] text-zinc-400">
-              / {formatMoney(sharedBucket.targetAmount ?? sharedBucket.balance)}
+              / {formatMoney(activeSquad.sharedBucket.targetAmount ?? activeSquad.sharedBucket.balance)}
             </span>
           </div>
           <Progress
             value={
-              sharedBucket.targetAmount
-                ? (sharedBucket.balance / sharedBucket.targetAmount) * 100
+              activeSquad.sharedBucket.targetAmount
+                ? (activeSquad.sharedBucket.balance / activeSquad.sharedBucket.targetAmount) * 100
                 : 100
             }
             color="cyan"
           />
           <div className="mt-3.5 flex items-center">
-            {sharedBucket.members.map((member) => (
+            {activeSquad.sharedBucket.members.map((member) => (
               <Avatar
                 key={member.userId}
                 name={member.name}
@@ -152,7 +192,7 @@ export function KawanScreen({
             ))}
             <button
               className="ml-auto text-xs font-black text-[#A78BFA]"
-              onClick={() => onContribute(sharedBucket.id)}
+              onClick={() => onContribute(activeSquad.sharedBucket!.id)}
             >
               Contribute
             </button>

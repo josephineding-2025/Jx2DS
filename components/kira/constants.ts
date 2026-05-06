@@ -6,7 +6,7 @@ import {
   Wallet,
   Waves,
 } from "lucide-react";
-import { DEMO_SQUAD_ID, DEMO_USER_ID } from "@/lib/demo/seed";
+import { DEMO_USER_ID } from "@/lib/demo/seed";
 import type { DemoState } from "@/lib/demo/state";
 
 export type TabId = "home" | "duit" | "arus" | "kawan" | "cermin";
@@ -15,9 +15,10 @@ export type TransactionItem = DemoState["transactions"][number];
 export type DebtItem = DemoState["debts"][number];
 export type BucketItem = DemoState["buckets"][number];
 export type MusimItem = DemoState["musimEvents"][number];
-export type SquadMemberItem = DemoState["squadMembers"][number];
+export type SquadMemberItem = DemoState["squads"][number]["members"][number];
+export type SquadItem = DemoState["squads"][number];
 
-export { DEMO_SQUAD_ID, DEMO_USER_ID };
+export { DEMO_USER_ID };
 
 export const tabs: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: "home", label: "Home", icon: HomeIcon },

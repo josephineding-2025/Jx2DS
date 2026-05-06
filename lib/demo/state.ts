@@ -1,11 +1,8 @@
 import { prisma } from "@/lib/db";
 import { calcMusimEvents } from "@/lib/finance/musim";
-import { DEMO_SQUAD_ID, DEMO_USER_ID } from "@/lib/demo/seed";
+import { DEMO_USER_ID } from "@/lib/demo/seed";
 
-export async function getDemoState(
-  userId: string = DEMO_USER_ID,
-  squadId: string = DEMO_SQUAD_ID,
-) {
+export async function getDemoState(userId: string = DEMO_USER_ID) {
   const today = new Date();
 
   const [
@@ -14,10 +11,6 @@ export async function getDemoState(
     debts,
     buckets,
     musimRows,
-    squad,
-    streaks,
-    sharedBucket,
-    challenge,
     walletAccount,
     transferRows,
   ] = await Promise.all([
@@ -39,34 +32,6 @@ export async function getDemoState(
       where: { userId },
       orderBy: { eventDate: "asc" },
     }),
-    prisma.squad.findUnique({ where: { id: squadId } }),
-    prisma.squadStreak.findMany({
-      where: { squadId },
-      include: {
-        user: { select: { id: true, name: true } },
-      },
-      orderBy: [{ savingsRate: "desc" }, { currentStreak: "desc" }],
-    }),
-    prisma.sharedBucket.findFirst({
-      where: { squadId },
-      include: {
-        members: {
-          include: {
-            user: { select: { id: true, name: true } },
-          },
-          orderBy: { contribution: "desc" },
-        },
-      },
-    }),
-    prisma.challenge.findFirst({
-      where: { squadId, endDate: { gte: today } },
-      include: {
-        completions: {
-          orderBy: { date: "asc" },
-        },
-      },
-      orderBy: { startDate: "desc" },
-    }),
     prisma.ledgerAccount.findUnique({
       where: { userId },
       select: { balanceSen: true },
@@ -86,6 +51,96 @@ export async function getDemoState(
 
   if (!user) return null;
 
+  const squadMemberships = await prisma.squadMember.findMany({
+    where: { userId },
+    select: { squadId: true },
+  });
+  const squadIds = squadMemberships.map((m) => m.squadId);
+
+  const squadRows = await prisma.squad.findMany({
+    where: { id: { in: squadIds } },
+  });
+
+  const squads = await Promise.all(
+    squadRows.map(async (squad) => {
+      const [streaks, sharedBucket, challenge] = await Promise.all([
+        prisma.squadStreak.findMany({
+          where: { squadId: squad.id },
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+          orderBy: [{ savingsRate: "desc" }, { currentStreak: "desc" }],
+        }),
+        prisma.sharedBucket.findFirst({
+          where: { squadId: squad.id },
+          include: {
+            members: {
+              include: {
+                user: { select: { id: true, name: true } },
+              },
+              orderBy: { contribution: "desc" },
+            },
+          },
+        }),
+        prisma.challenge.findFirst({
+          where: { squadId: squad.id, endDate: { gte: today } },
+          include: {
+            completions: {
+              orderBy: { date: "asc" },
+            },
+          },
+          orderBy: { startDate: "desc" },
+        }),
+      ]);
+
+      return {
+        id: squad.id,
+        name: squad.name,
+        members: streaks.map((streak) => ({
+          userId: streak.userId,
+          name: streak.user.name,
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastActive: streak.lastActive?.toISOString().split("T")[0] ?? null,
+          savingsRate: Number(streak.savingsRate),
+          isCurrentUser: streak.userId === userId,
+        })),
+        sharedBucket: sharedBucket
+          ? {
+              id: sharedBucket.id,
+              name: sharedBucket.name,
+              balance: Number(sharedBucket.balance),
+              targetAmount: sharedBucket.targetAmount
+                ? Number(sharedBucket.targetAmount)
+                : null,
+              members: sharedBucket.members.map((member) => ({
+                userId: member.userId,
+                name: member.user.name,
+                contribution: Number(member.contribution),
+              })),
+            }
+          : null,
+        challenge: challenge
+          ? {
+              id: challenge.id,
+              squadId: challenge.squadId,
+              name: challenge.name,
+              description: challenge.description,
+              startDate: challenge.startDate.toISOString().split("T")[0],
+              endDate: challenge.endDate.toISOString().split("T")[0],
+              penaltyAmount: Number(challenge.penaltyAmount),
+              completions: challenge.completions.map((c) => ({
+                challengeId: c.challengeId,
+                userId: c.userId,
+                date: c.date.toISOString().split("T")[0],
+                completed: c.completed,
+              })),
+            }
+          : null,
+      };
+    }),
+  );
+
   const musimEvents = calcMusimEvents(
     musimRows.map((event) => ({
       id: event.id,
@@ -103,7 +158,6 @@ export async function getDemoState(
       name: user.name,
       income: Number(user.income),
       salaryDay: user.salaryDay,
-      squadId: user.squadId,
     },
     walletBalanceSen: walletAccount?.balanceSen?.toString() ?? "0",
     transfers: transferRows.map((transfer) => ({
@@ -150,53 +204,7 @@ export async function getDemoState(
       type: bucket.type as "savings" | "bills" | "flex",
     })),
     musimEvents,
-    squad: squad
-      ? {
-          id: squad.id,
-          name: squad.name,
-        }
-      : null,
-    squadMembers: streaks.map((streak) => ({
-      userId: streak.userId,
-      name: streak.user.name,
-      currentStreak: streak.currentStreak,
-      longestStreak: streak.longestStreak,
-      lastActive: streak.lastActive?.toISOString().split("T")[0] ?? null,
-      savingsRate: Number(streak.savingsRate),
-      isCurrentUser: streak.userId === userId,
-    })),
-    sharedBucket: sharedBucket
-      ? {
-          id: sharedBucket.id,
-          name: sharedBucket.name,
-          balance: Number(sharedBucket.balance),
-          targetAmount: sharedBucket.targetAmount
-            ? Number(sharedBucket.targetAmount)
-            : null,
-          members: sharedBucket.members.map((member) => ({
-            userId: member.userId,
-            name: member.user.name,
-            contribution: Number(member.contribution),
-          })),
-        }
-      : null,
-    challenge: challenge
-      ? {
-          id: challenge.id,
-          squadId: challenge.squadId,
-          name: challenge.name,
-          description: challenge.description,
-          startDate: challenge.startDate.toISOString().split("T")[0],
-          endDate: challenge.endDate.toISOString().split("T")[0],
-          penaltyAmount: Number(challenge.penaltyAmount),
-          completions: challenge.completions.map((c) => ({
-            challengeId: c.challengeId,
-            userId: c.userId,
-            date: c.date.toISOString().split("T")[0],
-            completed: c.completed,
-          })),
-        }
-      : null,
+    squads,
   };
 }
 

@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseMyrToSen, sanitizeMyr } from "@/lib/finance/money";
 
 export async function POST(req: NextRequest) {
   try {
-    const { bucketId, userId, amount } = (await req.json()) as { bucketId: string; userId: string; amount: number };
+    const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!bucketId || !userId || !amount || amount <= 0) {
-      return NextResponse.json({ error: "bucketId, userId, and a positive amount are required" }, { status: 400 });
+    const { bucketId, amount } = (await req.json()) as { bucketId: string; amount: number };
+
+    if (!bucketId || !amount || amount <= 0) {
+      return NextResponse.json({ error: "bucketId and a positive amount are required" }, { status: 400 });
     }
 
     const sanitizedAmount = sanitizeMyr(amount);

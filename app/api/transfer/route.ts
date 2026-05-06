@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth";
 import { createTransfer } from "@/lib/finance/transfer";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { fromUserId, toUserId, amountMyr, idempotencyKey, debtRecordId, note } = body;
+    const fromUserId = await getAuthUserId();
+    if (!fromUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!fromUserId || !toUserId || !amountMyr || !idempotencyKey) {
+    const body = await req.json();
+    const { toUserId, amountMyr, idempotencyKey, debtRecordId, note } = body;
+
+    if (!toUserId || !amountMyr || !idempotencyKey) {
       return NextResponse.json(
-        { error: "fromUserId, toUserId, amountMyr, and idempotencyKey are required" },
+        { error: "toUserId, amountMyr, and idempotencyKey are required" },
         { status: 400 },
       );
     }

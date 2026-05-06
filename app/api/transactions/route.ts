@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatSenToMyr, parseMyrToSen } from "@/lib/finance/money";
+import { getAuthUserId } from "@/lib/auth";
 import type { ParsedExpense } from "@/types";
 
 type SaveTransactionBody = {
-  userId?: string;
   source?: "voice" | "receipt" | "manual";
   expense?: ParsedExpense;
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, source = "manual", expense } =
-      (await req.json()) as SaveTransactionBody;
+    const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !expense) {
+    const { source = "manual", expense } = (await req.json()) as SaveTransactionBody;
+
+    if (!expense) {
       return NextResponse.json(
-        { error: "userId and expense are required" },
+        { error: "expense is required" },
         { status: 400 },
       );
     }
