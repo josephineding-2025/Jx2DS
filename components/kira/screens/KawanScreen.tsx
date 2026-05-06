@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { Check, ChevronRight, Loader2, X } from "lucide-react";
+import type { DemoState } from "@/lib/demo/state";
+import type { SquadMemberItem, SquadItem } from "../constants";
+import { LeaderRow } from "../cards";
+import { Avatar, Pill, Progress, ScreenScroller, SectionHeader } from "../ui";
+import { card, cn, formatMoney, secondaryButton } from "../utils";
 
 function localDate(date = new Date()) {
   return [
@@ -10,13 +15,51 @@ function localDate(date = new Date()) {
   ].join("-");
 }
 
-import { Check, ChevronRight, Loader2, X } from "lucide-react";
-import type { DemoState } from "@/lib/demo/state";
-import type { SquadMemberItem, SquadItem } from "../constants";
-import { DEMO_USER_ID } from "../constants";
-import { LeaderRow } from "../cards";
-import { Avatar, Pill, Progress, ScreenScroller, SectionHeader } from "../ui";
-import { card, cn, formatMoney, secondaryButton } from "../utils";
+function computeChallengeStats(
+  activeSquad: SquadItem,
+  todayStr: string,
+  currentUserId: string,
+) {
+  const challenge = activeSquad.challenge;
+  if (!challenge) return null;
+
+  const start = new Date(challenge.startDate + "T00:00:00");
+  const end = new Date(challenge.endDate + "T00:00:00");
+  const msPerDay = 86400000;
+  const totalDays = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
+
+  const myCompletions = challenge.completions.filter((c) => c.userId === currentUserId);
+  const completedDays = myCompletions.filter((c) => c.completed).length;
+  const todayBroken = myCompletions.find((c) => c.date === todayStr && !c.completed);
+  const todayDone = myCompletions.find((c) => c.date === todayStr && c.completed);
+  const todayHasRecord = myCompletions.some((c) => c.date === todayStr);
+  const progress = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
+
+  const today = new Date(todayStr + "T00:00:00");
+  const elapsedDays = Math.min(
+    Math.round((today.getTime() - start.getTime()) / msPerDay) + 1,
+    totalDays,
+  );
+  const totalMembers = activeSquad.members.length;
+  const totalPossible = totalMembers * Math.max(elapsedDays, 1);
+  const totalGroupCompleted = challenge.completions.filter((c) => c.completed).length;
+  const groupRate = totalPossible > 0 ? Math.round((totalGroupCompleted / totalPossible) * 100) : 0;
+  const todayMembersCompleted = challenge.completions.filter(
+    (c) => c.date === todayStr && c.completed,
+  ).length;
+
+  return {
+    totalDays,
+    completedDays,
+    todayBroken,
+    todayDone,
+    todayHasRecord,
+    progress,
+    groupRate,
+    todayMembersCompleted,
+    totalMembers,
+  };
+}
 
 export function KawanScreen({
   squads,
@@ -35,53 +78,8 @@ export function KawanScreen({
 }) {
   const activeSquad = squads[activeSquadIndex] as SquadItem | undefined;
   const todayStr = localDate();
-
-  const challengeStats = useMemo(() => {
-    if (!activeSquad?.challenge) return null;
-    const challenge = activeSquad.challenge;
-    const start = new Date(challenge.startDate + "T00:00:00");
-    const end = new Date(challenge.endDate + "T00:00:00");
-    const msPerDay = 86400000;
-    const totalDays = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
-    const myCompletions = challenge.completions.filter(
-      (c) => c.userId === DEMO_USER_ID,
-    );
-    const completedDays = myCompletions.filter((c) => c.completed).length;
-    const todayBroken = myCompletions.find(
-      (c) => c.date === todayStr && !c.completed,
-    );
-    const todayDone = myCompletions.find(
-      (c) => c.date === todayStr && c.completed,
-    );
-    const todayHasRecord = myCompletions.some((c) => c.date === todayStr);
-    const progress = Math.round((completedDays / totalDays) * 100);
-
-    // Group completion rate across all members
-    const today = new Date(todayStr + "T00:00:00");
-    const elapsedDays = Math.min(
-      Math.round((today.getTime() - start.getTime()) / msPerDay) + 1,
-      totalDays,
-    );
-    const totalMembers = activeSquad.members.length;
-    const totalPossible = totalMembers * Math.max(elapsedDays, 1);
-    const totalGroupCompleted = challenge.completions.filter((c) => c.completed).length;
-    const groupRate = Math.round((totalGroupCompleted / totalPossible) * 100);
-    const todayMembersCompleted = challenge.completions.filter(
-      (c) => c.date === todayStr && c.completed,
-    ).length;
-
-    return {
-      totalDays,
-      completedDays,
-      todayBroken,
-      todayDone,
-      todayHasRecord,
-      progress,
-      groupRate,
-      todayMembersCompleted,
-      totalMembers,
-    };
-  }, [activeSquad?.challenge, activeSquad?.members.length, todayStr]);
+  const currentUserId = activeSquad?.members.find((m) => m.isCurrentUser)?.userId ?? "";
+  const challengeStats = activeSquad ? computeChallengeStats(activeSquad, todayStr, currentUserId) : null;
 
   if (!activeSquad) {
     return (
@@ -155,7 +153,7 @@ export function KawanScreen({
               date.setDate(date.getDate() + day);
               const dateStr = localDate(date);
               const completion = activeSquad.challenge!.completions.find(
-                (c) => c.date === dateStr && c.userId === DEMO_USER_ID,
+                (c) => c.date === dateStr && c.userId === currentUserId,
               );
               const done = completion?.completed ?? false;
               const broken = completion && !completion.completed;

@@ -15,6 +15,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { KawanScreen } from "./screens/KawanScreen";
 import { SeedScreen } from "./screens/SeedScreen";
 import { ContributeSheet } from "./sheets/ContributeSheet";
+import { EditSplitSheet } from "./sheets/EditSplitSheet";
 import { ReceiptSheet } from "./sheets/ReceiptSheet";
 import { TransferSheet } from "./sheets/TransferSheet";
 import { VoiceSheet } from "./sheets/VoiceSheet";
@@ -56,6 +57,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     amountMyr: string;
     debtRecordId: string | null;
   } | null>(null);
+  const [editSplitOpen, setEditSplitOpen] = useState(false);
 
   // Cermin slider state — lifted so Rewind can pre-fill them
   const [cerminSavings, setCerminSavings] = useState(0);
@@ -100,13 +102,17 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ source, expense }),
         });
-        const result = await readJson<DemoStatePatch>(res);
+        const result = await readJson<DemoStatePatch & { challengeViolated?: boolean; violatedChallengeNames?: string[] }>(res);
         if (!res.ok) throw new Error(result.error ?? "Save failed");
         applyPatch(result);
         setSheet(null);
         setSheetKey((k) => k + 1);
         setActiveTab("duit");
-        flash(source === "voice" ? "Voice expense saved" : "Receipt saved");
+        if (result.challengeViolated && result.violatedChallengeNames?.length) {
+          flash(`Challenge broken: ${result.violatedChallengeNames.join(", ")} — penalty applied`);
+        } else {
+          flash(source === "voice" ? "Voice expense saved" : "Receipt saved");
+        }
       } finally {
         setBusy(null);
       }
@@ -162,6 +168,27 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
       setBusy(null);
     }
   }, [applyPatch, data?.user.income, flash]);
+
+  const saveSplit = useCallback(
+    async (patches: { id: string; percentage: number }[]) => {
+      setBusy("split");
+      try {
+        const res = await fetch("/api/arus", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ buckets: patches }),
+        });
+        const result = await readJson<DemoStatePatch>(res);
+        if (!res.ok) throw new Error(result.error ?? "Update failed");
+        applyPatch(result);
+        setEditSplitOpen(false);
+        flash("Split updated");
+      } finally {
+        setBusy(null);
+      }
+    },
+    [applyPatch, flash],
+  );
 
   const challengeAction = useCallback(
     async (challengeId: string, completed: boolean, penaltyAmount: number) => {
@@ -369,6 +396,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 income={data.user.income}
                 salaryPulse={salaryPulse}
                 onSimulateSalary={simulateSalary}
+                onEditSplit={() => setEditSplitOpen(true)}
                 simulating={busy === "salary"}
               />
             )}
@@ -436,6 +464,15 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           toUserName={transferSheet?.toUserName ?? ""}
           amountMyr={transferSheet?.amountMyr ?? ""}
           debtRecordId={transferSheet?.debtRecordId ?? null}
+        />
+
+        <EditSplitSheet
+          open={editSplitOpen}
+          buckets={data.buckets}
+          income={data.user.income}
+          busy={busy === "split"}
+          onClose={() => setEditSplitOpen(false)}
+          onSave={saveSplit}
         />
 
         {/* Kira Rewind overlay */}

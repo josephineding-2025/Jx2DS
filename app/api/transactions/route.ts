@@ -3,19 +3,27 @@ import { prisma } from "@/lib/db";
 import { formatSenToMyr, parseMyrToSen } from "@/lib/finance/money";
 import { getAuthUserId } from "@/lib/auth";
 import {
+  getBucketsState,
   getDebtsState,
+  getSquadsState,
   getTransactionsState,
   getWalletBalanceSen,
   toDebtState,
   toTransactionState,
 } from "@/lib/demo/state";
 import { updateStreak } from "@/lib/streak";
+import { checkChallengeViolation } from "@/lib/claude/haiku";
 import type { ParsedExpense } from "@/types";
 
 type SaveTransactionBody = {
   source?: "voice" | "receipt" | "manual";
   expense?: ParsedExpense;
 };
+
+function localDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,6 +99,18 @@ export async function POST(req: NextRequest) {
         data: { balanceSen: { decrement: amountSen } },
       });
 
+      const category = expense.category || "Others";
+      const bucketType = categoryToBucketType(category);
+      const bucket = await tx.bucket.findFirst({
+        where: { userId, type: bucketType },
+      });
+      if (bucket) {
+        await tx.bucket.update({
+          where: { id: bucket.id },
+          data: { balance: { decrement: amount } },
+        });
+      }
+
       const debts = await tx.debtRecord.findMany({
         where: { transactionId: transaction.id },
       });
@@ -101,18 +121,75 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // Update streaks for all squads the user belongs to (logging a transaction counts as daily activity)
+    // Check active challenges for violations, update streaks accordingly
+    const today = localDateStr();
+    const todayDate = new Date(today);
     const memberships = await prisma.squadMember.findMany({ where: { userId } });
-    await Promise.all(memberships.map((m) => updateStreak(userId, m.squadId, false)));
 
-    const [transactions, debts, walletBalanceSen] = await Promise.all([
+    const violatedNames: string[] = [];
+
+    await Promise.all(
+      memberships.map(async (m) => {
+        const challenge = await prisma.challenge.findFirst({
+          where: { squadId: m.squadId, startDate: { lte: todayDate }, endDate: { gte: todayDate } },
+          orderBy: { startDate: "desc" },
+        });
+
+        if (!challenge) {
+          await updateStreak(userId, m.squadId, false);
+          return;
+        }
+
+        // Skip if already broken today
+        const alreadyBroken = await prisma.challengeCompletion.findFirst({
+          where: { challengeId: challenge.id, userId, date: todayDate, completed: false },
+        });
+        if (alreadyBroken) return;
+
+        const violated = await checkChallengeViolation(
+          { merchant: expense.merchant || "Unknown", amount, category: expense.category || "Others" },
+          { name: challenge.name, description: challenge.description },
+        );
+
+        if (violated) {
+          await prisma.challengeCompletion.upsert({
+            where: { challengeId_userId_date: { challengeId: challenge.id, userId, date: todayDate } },
+            create: { challengeId: challenge.id, userId, date: todayDate, completed: false },
+            update: { completed: false },
+          });
+          if (Number(challenge.penaltyAmount) > 0) {
+            await prisma.sharedBucket.updateMany({
+              where: { squadId: challenge.squadId },
+              data: { balance: { increment: Number(challenge.penaltyAmount) } },
+            });
+          }
+          await updateStreak(userId, m.squadId, true);
+          violatedNames.push(challenge.name);
+        } else {
+          await updateStreak(userId, m.squadId, false);
+        }
+      }),
+    );
+
+    const [transactions, debts, walletBalanceSen, buckets, squads] = await Promise.all([
       getTransactionsState(userId),
       getDebtsState(userId),
       getWalletBalanceSen(userId),
+      getBucketsState(userId),
+      getSquadsState(userId),
     ]);
 
     return NextResponse.json(
-      { ...saved, transactions, debts, walletBalanceSen },
+      {
+        ...saved,
+        transactions,
+        debts,
+        walletBalanceSen,
+        buckets,
+        squads,
+        challengeViolated: violatedNames.length > 0,
+        violatedChallengeNames: violatedNames,
+      },
       { status: 201 },
     );
   } catch (err) {
@@ -122,4 +199,9 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function categoryToBucketType(category: string): string {
+  if (category === "Bills") return "bills";
+  return "flex";
 }

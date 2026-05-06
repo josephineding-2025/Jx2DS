@@ -60,6 +60,11 @@ export function bucketColor(type: string) {
   return "amber";
 }
 
+export function categoryToBucketType(category: string): string {
+  if (category === "Bills") return "bills";
+  return "flex";
+}
+
 export function bucketCaption(bucket: BucketItem) {
   if (bucket.type === "savings") return "Bonus 3.55% p.a.";
   if (bucket.type === "bills") return "Auto-pay bills";

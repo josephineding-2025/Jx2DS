@@ -69,6 +69,31 @@ Input: "Lunch RM60, Ali owes 30, Siti owes 20"
 Output:
 {"amount":60.00,"currency":"MYR","merchant":"Unknown merchant","category":"Food & Drinks","date":"2026-05-06","participants":3,"per_person":20.00,"debt_records":[{"name":"Ali","amount":30.00},{"name":"Siti","amount":20.00}],"confidence":0.93}`
 
+export async function checkChallengeViolation(
+  transaction: { merchant: string; amount: number; category: string },
+  challenge: { name: string; description: string | null },
+): Promise<boolean> {
+  const model = process.env.LLM_NLP_MODEL ?? 'anthropic/claude-haiku-4-5'
+  try {
+    const res = await client.chat.completions.create({
+      model,
+      max_tokens: 5,
+      messages: [
+        {
+          role: 'user',
+          content: `Challenge rule: "${challenge.name}${challenge.description ? ` — ${challenge.description}` : ''}".
+Transaction: ${transaction.merchant} (${transaction.category}), RM${transaction.amount}.
+Does this transaction violate the challenge rule? Answer only "yes" or "no".`,
+        },
+      ],
+    })
+    const answer = res.choices[0]?.message?.content?.trim().toLowerCase() ?? ''
+    return answer.startsWith('yes')
+  } catch {
+    return false
+  }
+}
+
 export async function parseVoiceExpense(transcript: string): Promise<ParsedExpense> {
   const today = new Date().toISOString().split('T')[0]
   const model = process.env.LLM_NLP_MODEL ?? 'anthropic/claude-haiku-4-5'

@@ -185,6 +185,9 @@ export function BucketCard({ bucket, income }: { bucket: BucketItem; income: num
     ? Math.max(6, Math.min(96, (bucket.balance / maxBalance) * 100))
     : Math.max(6, Math.min(96, bucket.percentage * 1.8));
 
+  const overspent = bucket.balance < 0;
+  const low = !overspent && maxBalance > 0 && bucket.balance / maxBalance < 0.2;
+
   return (
     <article
       className={card(
@@ -193,6 +196,8 @@ export function BucketCard({ bucket, income }: { bucket: BucketItem; income: num
           color === "cyan" && "text-[#22D3EE]",
           color === "violet" && "text-[#A78BFA]",
           color === "amber" && "text-[#F59E0B]",
+          overspent && "shadow-[inset_0_0_0_1px_rgba(245,158,11,.45)] before:bg-[#F59E0B]",
+          low && !overspent && "shadow-[inset_0_0_0_1px_rgba(245,158,11,.2)]",
         ),
       )}
     >
@@ -201,8 +206,16 @@ export function BucketCard({ bucket, income }: { bucket: BucketItem; income: num
         <em className="text-[11px] font-black not-italic">{bucket.percentage}%</em>
       </div>
       <strong className="text-[15px] font-black text-white">{formatMoney(bucket.balance)}</strong>
-      <AnimatedProgress value={fill} color={color} />
-      <small className="min-h-6 text-[11px] font-bold text-current">{bucketCaption(bucket)}</small>
+      <AnimatedProgress value={fill} color={overspent ? "amber" : color} />
+      {overspent && (
+        <small className="min-h-6 text-[11px] font-bold text-[#F59E0B]">Over budget</small>
+      )}
+      {low && !overspent && (
+        <small className="min-h-6 text-[11px] font-bold text-[#F59E0B]/80">Running low</small>
+      )}
+      {!overspent && !low && (
+        <small className="min-h-6 text-[11px] font-bold text-current">{bucketCaption(bucket)}</small>
+      )}
     </article>
   );
 }

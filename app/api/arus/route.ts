@@ -4,6 +4,50 @@ import { getAuthUserId } from '@/lib/auth'
 import { getBucketsState, getTransactionsState, getWalletBalanceSen } from '@/lib/demo/state'
 import { formatSenToMyr, parseMyrToSen, splitSenByPercentages } from '@/lib/finance/money'
 
+type BucketPatch = { id: string; percentage: number }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const userId = await getAuthUserId()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { buckets: patches } = await req.json() as { buckets: BucketPatch[] }
+    if (!Array.isArray(patches) || patches.length === 0) {
+      return NextResponse.json({ error: 'buckets array is required' }, { status: 400 })
+    }
+
+    const total = patches.reduce((sum, p) => sum + p.percentage, 0)
+    if (total !== 100) {
+      return NextResponse.json({ error: 'Percentages must sum to 100' }, { status: 400 })
+    }
+
+    const existing = await prisma.bucket.findMany({ where: { userId } })
+    const existingIds = new Set(existing.map(b => b.id))
+    for (const patch of patches) {
+      if (!existingIds.has(patch.id)) {
+        return NextResponse.json({ error: `Bucket ${patch.id} not found` }, { status: 404 })
+      }
+    }
+
+    await prisma.$transaction(
+      patches.map(patch =>
+        prisma.bucket.update({
+          where: { id: patch.id },
+          data: { percentage: patch.percentage },
+        })
+      )
+    )
+
+    const buckets = await getBucketsState(userId)
+    return NextResponse.json({ buckets })
+  } catch (err) {
+    console.error('[arus PATCH]', err)
+    return NextResponse.json({ error: 'Failed to update bucket config' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const userId = await getAuthUserId()
