@@ -19,12 +19,12 @@ export async function POST(req: NextRequest) {
 
     const pendingDebts = await prisma.debtRecord.findMany({
       where: { creditorId: userId, status: 'pending' },
-      select: { id: true, debtorName: true, amount: true, context: true },
+      include: { debtor: { select: { name: true } } },
     })
 
     const debtsForMatch = pendingDebts.map(d => ({
       id: d.id,
-      debtorName: d.debtorName,
+      debtorName: d.debtor?.name ?? d.debtorName ?? '',
       amount: Number(d.amount),
       context: d.context,
     }))

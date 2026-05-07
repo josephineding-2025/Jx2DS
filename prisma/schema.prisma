@@ -16,7 +16,8 @@ model User {
   createdAt DateTime @default(now())
 
   transactions          Transaction[]
-  debtRecords           DebtRecord[]
+  debtRecords           DebtRecord[] @relation("CreditorRecords")
+  debtorDebtRecords     DebtRecord[] @relation("DebtorRecords")
   buckets               Bucket[]
   musimEvents           MusimEvent[]
   squadMemberships      SquadMember[]
@@ -51,7 +52,8 @@ model Transaction {
 model DebtRecord {
   id            String    @id @default(uuid())
   creditorId    String
-  debtorName    String
+  debtorId      String?
+  debtorName    String?
   amount        Decimal   @db.Decimal(10, 2)
   context       String?
   transactionId String?
@@ -60,7 +62,8 @@ model DebtRecord {
   settledAt     DateTime?
   createdAt     DateTime  @default(now())
 
-  creditor    User         @relation(fields: [creditorId], references: [id], onDelete: Cascade)
+  creditor    User         @relation("CreditorRecords", fields: [creditorId], references: [id], onDelete: Cascade)
+  debtor      User?        @relation("DebtorRecords", fields: [debtorId], references: [id])
   transaction Transaction? @relation(fields: [transactionId], references: [id])
   settledByTransfer Transfer? @relation
 

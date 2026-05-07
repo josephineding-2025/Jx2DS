@@ -449,6 +449,8 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           busy={busy === "save-receipt"}
           onClose={() => setSheet(null)}
           onSave={(expense) => saveExpense(expense, "receipt")}
+          squadMembers={data.squads.flatMap((s) => s.members)}
+          currentUser={{ id: data.user.id, name: data.user.name }}
         />
         <ContributeSheet
           open={contributeSheet !== null}

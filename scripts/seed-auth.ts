@@ -355,9 +355,9 @@ async function main() {
   // ── 8. Debt records ──
   await prisma.debtRecord.createMany({
     data: [
-      { creditorId: jsId, debtorName: "Josephine", amount: 42.50, context: "Lunch split last week", status: "pending", direction: "owe_me" },
-      { creditorId: joId, debtorName: "Jin Seng", amount: 60.00, context: "Grocery run share", status: "pending", direction: "owe_me" },
-      { creditorId: jsId, debtorName: "Josephine", amount: 85.00, context: "Nando's Midvalley", status: "settled", direction: "owe_me", settledAt: daysAgo(4) },
+      { creditorId: jsId, debtorId: joId, amount: 42.50, context: "Lunch split last week", status: "pending", direction: "owe_me" },
+      { creditorId: joId, debtorId: jsId, amount: 60.00, context: "Grocery run share", status: "pending", direction: "owe_me" },
+      { creditorId: jsId, debtorId: joId, amount: 85.00, context: "Nando's Midvalley", status: "settled", direction: "owe_me", settledAt: daysAgo(4) },
     ],
   });
   console.log("[DB] created debt records");

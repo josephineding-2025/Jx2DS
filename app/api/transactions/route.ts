@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       });
 
       const debtRows = expense.debt_records.flatMap((debt) => {
-        if (!debt.name) return [];
+        if (!debt.name && !debt.debtorId) return [];
 
         const debtAmountSen = parseMyrToSen(String(debt.amount));
         if (debtAmountSen <= 0n) return [];
@@ -80,7 +80,9 @@ export async function POST(req: NextRequest) {
         return [
           {
             creditorId: userId,
-            debtorName: debt.name,
+            ...(debt.debtorId
+              ? { debtorId: debt.debtorId }
+              : { debtorName: debt.name }),
             amount: Number(formatSenToMyr(debtAmountSen)),
             context: expense.merchant,
             transactionId: transaction.id,
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
 
       const debts = await tx.debtRecord.findMany({
         where: { transactionId: transaction.id },
+        include: { debtor: { select: { name: true } } },
       });
 
       return {

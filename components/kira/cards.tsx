@@ -121,9 +121,9 @@ export function DebtCard({
 
   const handlePay = () => {
     if (!squadMembers || !setTransferSheet || !flash) return;
-    const member = squadMembers.find((m) =>
-      m.name.toLowerCase().startsWith(debt.debtorName.toLowerCase())
-    );
+    const member = debt.debtorId
+      ? squadMembers.find((m) => m.userId === debt.debtorId)
+      : squadMembers.find((m) => m.name.toLowerCase().startsWith(debt.debtorName.toLowerCase()));
     if (!member) {
       flash(`Cannot find user account for ${debt.debtorName}`);
       return;
@@ -252,19 +252,58 @@ export function LeaderRow({ member, rank }: { member: SquadMemberItem; rank: num
   );
 }
 
+function nameSimilarity(a: string, b: string): number {
+  const tokensA = a.toLowerCase().split(/\s+/);
+  const tokensB = b.toLowerCase().split(/\s+/);
+  const intersection = tokensA.filter((t) => tokensB.includes(t));
+  return intersection.length / Math.max(tokensA.length, tokensB.length);
+}
+
+function computeAutoAssignments(
+  debtRecords: { name: string }[],
+  currentUser?: { id: string; name: string },
+  squadMembers?: SquadMemberItem[],
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const d of debtRecords) {
+    let bestScore = 0.49; // minimum threshold
+    let bestValue = "";
+    if (currentUser) {
+      const score = nameSimilarity(d.name, currentUser.name);
+      if (score > bestScore) { bestScore = score; bestValue = "me"; }
+    }
+    for (const m of squadMembers ?? []) {
+      if (m.isCurrentUser) continue;
+      const score = nameSimilarity(d.name, m.name);
+      if (score > bestScore) { bestScore = score; bestValue = m.userId; }
+    }
+    result[d.name] = bestValue;
+  }
+  return result;
+}
+
 export function ParsedExpenseCard({
   parsed,
   onParsedChange,
   busy,
   onSave,
+  squadMembers,
+  currentUser,
 }: {
   parsed: ParsedExpense;
   onParsedChange: (updated: ParsedExpense) => void;
   busy: boolean;
-  onSave: () => void;
+  onSave: (expense: ParsedExpense) => void;
+  squadMembers?: SquadMemberItem[];
+  currentUser?: { id: string; name: string };
 }) {
   const [editingAmount, setEditingAmount] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(false);
+  const [assignments, setAssignments] = useState<Record<string, string>>(() =>
+    computeAutoAssignments(parsed.debt_records, currentUser, squadMembers),
+  );
+
+  const hasSquadContext = !!currentUser && (squadMembers?.length ?? 0) > 0;
 
   const updateAmount = (raw: string) => {
     const n = parseFloat(raw);
@@ -283,6 +322,26 @@ export function ParsedExpenseCard({
       ),
     });
   };
+
+  const handleSave = () => {
+    const transformed = parsed.debt_records
+      .filter((d) => assignments[d.name] !== "me")
+      .map((d) => {
+        const uid = assignments[d.name];
+        const member = squadMembers?.find((m) => m.userId === uid);
+        return member ? { ...d, name: member.name, debtorId: member.userId } : d;
+      });
+    onSave({ ...parsed, debt_records: transformed });
+  };
+
+  const otherMembers = useMemo(() => {
+    const seen = new Set<string>();
+    return (squadMembers ?? []).filter((m) => {
+      if (m.isCurrentUser || seen.has(m.userId)) return false;
+      seen.add(m.userId);
+      return true;
+    });
+  }, [squadMembers]);
 
   return (
     <div className={card("mt-3 grid gap-3.5 border-[#4ADE80]/20 bg-[#1E1E30] p-4")}>
@@ -335,7 +394,23 @@ export function ParsedExpenseCard({
           {parsed.debt_records.map((debt) => (
             <div key={debt.name} className="flex items-center gap-2">
               <Avatar name={debt.name} small />
-              <span className="flex-1 text-xs font-bold">{debt.name}</span>
+              {hasSquadContext ? (
+                <select
+                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
+                  value={assignments[debt.name] ?? ""}
+                  onChange={(e) =>
+                    setAssignments((prev) => ({ ...prev, [debt.name]: e.target.value }))
+                  }
+                >
+                  <option value="me">Me ({currentUser!.name})</option>
+                  {otherMembers.map((m) => (
+                    <option key={m.userId} value={m.userId}>{m.name}</option>
+                  ))}
+                  <option value="">Unassigned</option>
+                </select>
+              ) : (
+                <span className="flex-1 text-xs font-bold">{debt.name}</span>
+              )}
               <input
                 className="w-[72px] rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-right text-xs font-black text-[#22D3EE] focus:outline-none focus:ring-1 focus:ring-[#22D3EE]"
                 defaultValue={debt.amount}
@@ -356,7 +431,7 @@ export function ParsedExpenseCard({
           )}
         </div>
       )}
-      <button className={primaryButton("w-full")} onClick={onSave} disabled={busy}>
+      <button className={primaryButton("w-full")} onClick={handleSave} disabled={busy}>
         {busy ? <Loader2 className="animate-spin" size={17} /> : <Check size={17} />}
         Confirm and save
       </button>

@@ -19,7 +19,9 @@ type TransactionRecord = {
 type DebtRecordRow = {
   id: string;
   creditorId: string;
-  debtorName: string;
+  debtorId: string | null;
+  debtorName: string | null;
+  debtor: { name: string } | null;
   amount: DecimalLike;
   context: string | null;
   transactionId: string | null;
@@ -106,7 +108,8 @@ export function toDebtState(debt: DebtRecordRow) {
   return {
     id: debt.id,
     creditorId: debt.creditorId,
-    debtorName: debt.debtorName,
+    debtorId: debt.debtorId,
+    debtorName: debt.debtor?.name ?? debt.debtorName ?? "Unknown",
     amount: Number(debt.amount),
     context: debt.context,
     transactionId: debt.transactionId,
@@ -212,6 +215,7 @@ export async function getDebtsState(userId: string) {
   const debts = await prisma.debtRecord.findMany({
     where: { creditorId: userId },
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    include: { debtor: { select: { name: true } } },
   });
 
   return debts.map(toDebtState);
@@ -261,8 +265,17 @@ export async function getTransfersState(userId: string) {
   return transfers.map((transfer) => toTransferState(transfer, userId));
 }
 
+function getLastSalaryDay(salaryDay: number | null, today: Date): Date {
+  const day = salaryDay ?? 1;
+  const thisMonth = new Date(today.getFullYear(), today.getMonth(), day);
+  if (thisMonth <= today) return thisMonth;
+  return new Date(today.getFullYear(), today.getMonth() - 1, day);
+}
+
 export async function getSquadsState(userId: string) {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const squadMemberships = await prisma.squadMember.findMany({
     where: { userId },
     select: { squadId: true },
@@ -279,9 +292,8 @@ export async function getSquadsState(userId: string) {
         prisma.squadStreak.findMany({
           where: { squadId: squad.id },
           include: {
-            user: { select: { id: true, name: true } },
+            user: { select: { id: true, name: true, income: true, salaryDay: true } },
           },
-          orderBy: [{ savingsRate: "desc" }, { currentStreak: "desc" }],
         }),
         prisma.sharedBucket.findFirst({
           where: { squadId: squad.id },
@@ -305,18 +317,43 @@ export async function getSquadsState(userId: string) {
         }),
       ]);
 
+      // Per-member savings rate: savings deposited this cycle / income
+      const membersWithRate = await Promise.all(
+        streaks.map(async (streak) => {
+          const cycleStart = getLastSalaryDay(streak.user.salaryDay, today);
+          const saved = await prisma.transaction.aggregate({
+            where: {
+              userId: streak.userId,
+              source: { in: ["salary", "musim"] },
+              amount: { gt: 0 },
+              date: { gte: cycleStart },
+            },
+            _sum: { amount: true },
+          });
+          const income = Number(streak.user.income);
+          const savingsRate =
+            income > 0 ? Math.min(100, (Number(saved._sum.amount ?? 0) / income) * 100) : 0;
+          return {
+            userId: streak.userId,
+            name: streak.user.name,
+            currentStreak: streak.currentStreak,
+            longestStreak: streak.longestStreak,
+            lastActive: streak.lastActive?.toISOString().split("T")[0] ?? null,
+            savingsRate: Math.round(savingsRate * 10) / 10,
+            isCurrentUser: streak.userId === userId,
+          };
+        }),
+      );
+
+      // Sort by savings rate desc, then streak desc
+      membersWithRate.sort(
+        (a, b) => b.savingsRate - a.savingsRate || b.currentStreak - a.currentStreak,
+      );
+
       return {
         id: squad.id,
         name: squad.name,
-        members: streaks.map((streak) => ({
-          userId: streak.userId,
-          name: streak.user.name,
-          currentStreak: streak.currentStreak,
-          longestStreak: streak.longestStreak,
-          lastActive: streak.lastActive?.toISOString().split("T")[0] ?? null,
-          savingsRate: Number(streak.savingsRate),
-          isCurrentUser: streak.userId === userId,
-        })),
+        members: membersWithRate,
         sharedBucket: sharedBucket ? toSharedBucketState(sharedBucket) : null,
         challenge: challenge ? toChallengeState(challenge) : null,
       };

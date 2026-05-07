@@ -6,7 +6,7 @@ export interface ParsedExpense {
   date: string
   participants: number
   per_person: number
-  debt_records: { name: string; amount: number }[]
+  debt_records: { name: string; amount: number; debtorId?: string }[]
   confidence: number
   notes?: string
 }
@@ -26,6 +26,7 @@ export interface Transaction {
 export interface DebtRecord {
   id: string
   creditorId: string
+  debtorId: string | null
   debtorName: string
   amount: number
   context: string | null

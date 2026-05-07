@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { ReceiptText } from "lucide-react";
 import type { ParsedExpense } from "@/types";
+import type { SquadMemberItem } from "../constants";
 import { ParsedExpenseCard } from "../cards";
 import { BottomSheet, SheetHeader } from "../ui";
 import { resizeImage } from "../utils";
@@ -12,11 +13,15 @@ export function ReceiptSheet({
   busy,
   onClose,
   onSave,
+  squadMembers,
+  currentUser,
 }: {
   open: boolean;
   busy: boolean;
   onClose: () => void;
   onSave: (expense: ParsedExpense) => void;
+  squadMembers?: SquadMemberItem[];
+  currentUser?: { id: string; name: string };
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [parsed, setParsed] = useState<ParsedExpense | null>(null);
@@ -84,7 +89,14 @@ export function ReceiptSheet({
       {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
       {parsed && (
         <>
-          <ParsedExpenseCard parsed={parsed} onParsedChange={setParsed} busy={busy} onSave={() => onSave({ ...parsed, notes: notes || undefined })} />
+          <ParsedExpenseCard
+            parsed={parsed}
+            onParsedChange={setParsed}
+            busy={busy}
+            onSave={(expense) => onSave({ ...expense, notes: notes || undefined })}
+            squadMembers={squadMembers}
+            currentUser={currentUser}
+          />
           <input
             className="mt-2.5 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
             placeholder="Add a note (optional)"

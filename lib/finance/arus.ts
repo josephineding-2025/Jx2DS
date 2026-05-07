@@ -6,7 +6,7 @@ export type ArusBucketInput = {
 };
 
 export type ArusDebtInput = {
-  debtorName: string;
+  debtorName?: string;
   amount: number;
   context: string | null;
   status: string;
