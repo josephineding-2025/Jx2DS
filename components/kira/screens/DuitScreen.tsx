@@ -54,7 +54,7 @@ export function DuitScreen({
     <>
       <Hero compact />
       <ScreenScroller>
-        <Title title="Duit" subtitle="Transactions and money owed" icon={Search} />
+        <Title title="Wallet" subtitle="Transactions and money owed" icon={Search} />
         <Segmented
           value={view}
           options={[

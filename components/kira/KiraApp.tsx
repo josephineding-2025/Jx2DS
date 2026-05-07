@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Car } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DemoState } from "@/lib/demo/state";
@@ -9,7 +9,6 @@ import type { ParsedExpense, RewindStory } from "@/types";
 import type { SheetId, TabId } from "./constants";
 import { TabBar } from "./ui";
 import { ArusScreen } from "./screens/ArusScreen";
-import { CerminScreen } from "./screens/CerminScreen";
 import { DuitScreen } from "./screens/DuitScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { KawanScreen } from "./screens/KawanScreen";
@@ -47,6 +46,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [salaryPulse, setSalaryPulse] = useState(false);
+  const [parkingNotif, setParkingNotif] = useState(false);
   const [reconcileName, setReconcileName] = useState("");
   const [reconcileAmount, setReconcileAmount] = useState("");
   const [contributeSheet, setContributeSheet] = useState<string | null>(null);
@@ -58,11 +58,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     debtRecordId: string | null;
   } | null>(null);
   const [editSplitOpen, setEditSplitOpen] = useState(false);
-
-  // Cermin slider state — lifted so Rewind can pre-fill them
-  const [cerminSavings, setCerminSavings] = useState(0);
-  const [cerminFood, setCerminFood] = useState(0);
-  const [cerminTransport, setCerminTransport] = useState(0);
 
   // Rewind state
   const [rewindOpen, setRewindOpen] = useState(false);
@@ -171,6 +166,33 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
       setBusy(null);
     }
   }, [applyPatch, data?.user.income, flash]);
+
+  const triggerParking = useCallback(async () => {
+    setParkingNotif(true);
+    window.setTimeout(() => setParkingNotif(false), 4500);
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "manual",
+          expense: {
+            amount: 1.0,
+            category: "Bills",
+            merchant: "SS2 Damansara Parking",
+            date: today,
+            notes: "Smart Auto-Pay · CarPlay disconnected",
+            debt_records: [],
+          },
+        }),
+      });
+      const result = await readJson<DemoStatePatch>(res);
+      if (res.ok) applyPatch(result);
+    } catch {
+      // silent — notification already shown
+    }
+  }, [applyPatch]);
 
   const saveSplit = useCallback(
     async (patches: { id: string; percentage: number }[]) => {
@@ -335,21 +357,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     }
   }, [data, rewindStory, flash]);
 
-  const applyRewindCermin = useCallback((key: string, amount: number) => {
-    if (key === "food") setCerminFood(Math.min(Math.round(amount), 400));
-    else if (key === "transport")
-      setCerminTransport(Math.min(Math.round(amount), 250));
-    else if (key === "savings")
-      setCerminSavings(Math.min(Math.round(amount), 600));
-    setActiveTab("cermin");
-  }, []);
-
-  const applyArusCermin = useCallback((monthlySavings: number) => {
-    setCerminSavings(Math.min(Math.round(monthlySavings), 600));
-    setActiveTab("cermin");
-    flash("Arus plan applied to Cermin");
-  }, [flash]);
-
   const signOut = useCallback(async () => {
     await fetch("/auth/signout", { method: "POST" });
     router.push("/login");
@@ -407,8 +414,8 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 salaryPulse={salaryPulse}
                 onSimulateSalary={simulateSalary}
                 onEditSplit={() => setEditSplitOpen(true)}
-                onApplyCermin={applyArusCermin}
                 simulating={busy === "salary"}
+                onTriggerParking={triggerParking}
               />
             )}
             {activeTab === "kawan" && (
@@ -419,16 +426,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 onChallengeAction={challengeAction}
                 breakingChallenge={busy === "challenge"}
                 onContribute={setContributeSheet}
-              />
-            )}
-            {activeTab === "cermin" && (
-              <CerminScreen
-                monthlySavings={cerminSavings}
-                foodCut={cerminFood}
-                transportCut={cerminTransport}
-                onMonthlySavingsChange={setCerminSavings}
-                onFoodCutChange={setCerminFood}
-                onTransportCutChange={setCerminTransport}
               />
             )}
           </motion.div>
@@ -498,7 +495,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
               key="rewind-story"
               story={rewindStory}
               onClose={() => setRewindOpen(false)}
-              onApplyCermin={applyRewindCermin}
             />
           )}
         </AnimatePresence>
@@ -513,6 +509,32 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
             >
               <BadgeCheck size={16} />
               {notice}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {parkingNotif && (
+            <motion.div
+              className="absolute left-4 right-4 top-4 z-[95] overflow-hidden rounded-[20px] border border-white/15 bg-[#16162A]/95 p-3.5 shadow-2xl backdrop-blur-md"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#7C3AED]/25 text-[#A78BFA]">
+                  <Car size={17} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-zinc-400">Smart Auto-Pay</span>
+                    <span className="text-[10px] text-zinc-500">just now</span>
+                  </div>
+                  <p className="mt-0.5 text-[13px] font-black text-white">CarPlay disconnected · SS2 Damansara</p>
+                  <p className="mt-0.5 text-[12px] font-medium text-[#4ADE80]">Street parking paid · RM1.00 from Bil Tetap</p>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

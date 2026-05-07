@@ -1115,6 +1115,7 @@
 
   <deck-stage width="1920" height="1080" no-rail>
 
+    <!-- 01 TITLE -->
     <section class="title-slide" data-label="Title">
       <div class="hero-band"></div>
       <div class="title-top">
@@ -1124,194 +1125,208 @@
       <div class="slide-inner">
         <div class="badge-row reveal">
           <span class="badge">Hackathon Pitch</span>
-          <span class="mono">7 slides / 5 minutes</span>
+          <span class="mono">8 slides / 5 minutes</span>
         </div>
         <h1 class="kira-word reveal" style="--d: 80ms;">SNAPIT</h1>
         <p class="tagline reveal" style="--d: 160ms;">Your money, on autopilot.</p>
         <div class="title-context">
           <div class="mini-stat reveal" style="--d: 260ms;">
             <div class="v" style="color: var(--cyan);">AI-native</div>
-            <div class="l">Voice, receipts, Rewind stories, Debt Shield, and behavioural nudges.</div>
+            <div class="l">Voice and receipt scanning, smart auto-saves, and monthly Rewind stories.</div>
           </div>
           <div class="mini-stat reveal" style="--d: 340ms;">
             <div class="v" style="color: var(--green);">Malaysia-first</div>
-            <div class="l">MYR, PTPTN, Raya, Manglish, group meals, youth squads.</div>
+            <div class="l">MYR, PTPTN, Raya, Manglish, samans, group meals, and saving squads.</div>
           </div>
           <div class="mini-stat reveal" style="--d: 420ms;">
             <div class="v" style="color: var(--pink);">GXBank-native</div>
-            <div class="l">Designed as a feature layer, not another finance app.</div>
+            <div class="l">Designed as a feature layer, not another standalone finance app.</div>
           </div>
         </div>
       </div>
-      <div class="slide-num">01 / 07</div>
+      <div class="slide-num">01 / 08</div>
       <div class="bottom-note">AI-native financial resilience for Malaysian youth</div>
     </section>
 
+    <!-- 02 THE PROBLEM -->
     <section data-label="The Problem">
       <div class="slide-inner problem-layout">
         <div>
           <div class="label-row reveal">
             <span class="badge">The Problem</span>
-            <span class="meta">02 / 07</span>
+            <span class="meta">02 / 08</span>
           </div>
           <h2 class="headline reveal" style="--d: 90ms;">
-            She knows she should save.<br>
-            <span class="muted">She just never does.</span>
+            An entire generation<br>
+            <span class="muted">drowning in friction.</span>
           </h2>
           <p class="body-copy reveal" style="--d: 180ms; margin-top: 42px;">
-            Amirah is 23, fresh out of university, earning <strong>RM2,800/month</strong>.
-            She splits meals, pays PTPTN, uses GrabFood, and wants to save.
-            The problem is that every good money decision still asks her for willpower.
+            Amirah is 23, earning <strong>RM2,800/month</strong>. She tracks nothing, forgets parking, and watches her salary disappear before she can save a single ringgit.
           </p>
           <div class="problem-villain reveal" style="--d: 280ms;">
             <i>!</i>
             <span>The villain is friction</span>
           </div>
         </div>
-        <div class="problem-stats">
-          <div class="card stat-card reveal" style="--c: var(--pink); --d: 120ms;">
-            <div class="stat-value num">67%</div>
-            <div class="stat-label">
-              of Malaysian youth aged 20-30 have zero emergency savings
-              <span class="source">PRD evidence / financial capability data</span>
-            </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-content:center;">
+          <div class="card reveal" style="--d:120ms;padding:30px;">
+            <div style="font-size:88px;font-weight:950;line-height:0.88;letter-spacing:-0.05em;color:var(--pink);">67%</div>
+            <div style="margin-top:14px;font-size:17px;font-weight:700;line-height:1.35;">of Malaysian youth have zero emergency savings</div>
+            <span style="display:block;margin-top:10px;color:var(--text-3);font-family:ui-monospace,monospace;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Financial capability data</span>
           </div>
-          <div class="card stat-card reveal" style="--c: var(--amber); --d: 220ms;">
-            <div class="stat-value num">+40%</div>
-            <div class="stat-label">
-              debt growth among Malaysians under 35 since 2019
-              <span class="source">PRD evidence / AKPK data</span>
-            </div>
+          <div class="card reveal" style="--d:200ms;padding:30px;">
+            <div style="font-size:88px;font-weight:950;line-height:0.88;letter-spacing:-0.05em;color:var(--amber);">+40%</div>
+            <div style="margin-top:14px;font-size:17px;font-weight:700;line-height:1.35;">debt growth among Malaysians under 35 since 2019</div>
+            <span style="display:block;margin-top:10px;color:var(--text-3);font-family:ui-monospace,monospace;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">AKPK data</span>
           </div>
-          <div class="card stat-card reveal" style="--c: var(--cyan); --d: 320ms;">
-            <div class="stat-value num">70%</div>
-            <div class="stat-label">
-              of PTPTN borrowers take more than 10 years to repay
-              <span class="source">PRD evidence / PTPTN repayment data</span>
-            </div>
+          <div class="card reveal" style="--d:280ms;padding:30px;">
+            <div style="font-size:88px;font-weight:950;line-height:0.88;letter-spacing:-0.05em;color:var(--cyan);">70%</div>
+            <div style="margin-top:14px;font-size:17px;font-weight:700;line-height:1.35;">of PTPTN borrowers take 10+ years to repay</div>
+            <span style="display:block;margin-top:10px;color:var(--text-3);font-family:ui-monospace,monospace;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">PTPTN repayment data</span>
+          </div>
+          <div class="card reveal" style="--d:360ms;padding:30px;background:linear-gradient(135deg,rgba(236,72,153,0.18),rgba(124,58,237,0.12)),var(--surface);box-shadow:inset 0 0 0 1px rgba(236,72,153,0.3);">
+            <div style="font-size:88px;font-weight:950;line-height:0.88;letter-spacing:-0.05em;color:var(--pink);">10%</div>
+            <div style="margin-top:14px;font-size:17px;font-weight:700;line-height:1.35;">of income lost to samans — a RM30 fine for a 60-sen parking fee</div>
+            <span style="display:block;margin-top:10px;color:var(--pink);font-family:ui-monospace,monospace;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">The new villain</span>
           </div>
         </div>
       </div>
-      <div class="slide-num">02 / 07</div>
+      <div class="slide-num">02 / 08</div>
     </section>
 
-    <section data-label="The Insight">
-      <div class="slide-inner insight-wrap">
+    <!-- 03 SNAPIT INTRO -->
+    <section data-label="SnapIt">
+      <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:36px;">
         <div class="label-row reveal">
-          <span class="badge purple">The Insight</span>
-          <span class="meta">03 / 07</span>
+          <span class="badge cyan">The Solution</span>
+          <span class="meta">03 / 08</span>
         </div>
-        <div class="insight-center">
-          <div class="mega-line reveal" style="--d: 80ms;">
-            The problem is not awareness.<br>
-            It is <span class="pink">activation.</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:center;">
+          <div>
+            <div class="reveal" style="--d:80ms;font-size:26px;font-weight:700;color:var(--text-2);margin-bottom:20px;">So, we built this.</div>
+            <div class="reveal" style="--d:140ms;font-size:104px;font-weight:950;line-height:0.86;letter-spacing:-0.065em;">SNAP<span style="color:var(--purple-light);">IT</span></div>
+            <p class="body-copy reveal" style="--d:220ms;margin-top:34px;">An <strong>AI-native feature layer</strong> for the GXBank ecosystem — taking the heavy lifting out of wealth management and putting your money on autopilot.</p>
+            <div class="reveal" style="--d:300ms;margin-top:32px;display:flex;align-items:center;gap:14px;">
+              <div style="height:3px;flex:1;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:999px;"></div>
+              <span style="color:var(--text-2);font-size:15px;font-weight:900;letter-spacing:0.1em;white-space:nowrap;">PASSIVE → ACTIVE MANAGEMENT</span>
+              <div style="height:3px;flex:1;background:linear-gradient(90deg,var(--pink),var(--purple));border-radius:999px;"></div>
+            </div>
           </div>
-          <p class="body-copy reveal" style="--d: 180ms; margin-top: 38px; max-width: 980px;">
-            Banking apps are rearview mirrors: they show what happened after the damage is done.
-            SnapIt changes the model from <strong>remember, decide, act</strong> to
-            <strong>detect, decide, act for me</strong>.
-          </p>
-          <div class="loop-grid">
-            <div class="card loop-card reveal" style="--c: var(--pink); --d: 260ms;">
-              <div class="step">01 / CAPTURE</div>
-              <h3>No manual bookkeeping</h3>
-              <p>Voice and receipt inputs become clean transactions and split records in seconds.</p>
+          <div style="display:grid;gap:18px;" class="reveal" style="--d:180ms;">
+            <div class="card" style="padding:30px 32px;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(76,29,149,0.14)),var(--surface);">
+              <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--purple-light);margin-bottom:12px;">For youth</div>
+              <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.25;">Malaysian youth are exhausted by manual tracking and traditional, boring finance apps.</div>
             </div>
-            <div class="card loop-card reveal" style="--c: var(--green); --d: 340ms;">
-              <div class="step">02 / SETTLE</div>
-              <h3>No debt chasing</h3>
-              <p>Incoming payments are matched against outstanding shares automatically.</p>
+            <div class="card" style="padding:30px 32px;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(124,58,237,0.12)),var(--surface);">
+              <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--pink);margin-bottom:12px;">For GXBank</div>
+              <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.25;">SnapIt does not compete with GXBank — it becomes its intelligence layer for the youth segment.</div>
             </div>
-            <div class="card loop-card reveal" style="--c: var(--cyan); --d: 420ms;">
-              <div class="step">03 / ALLOCATE</div>
-              <h3>No salary drift</h3>
-              <p>Income is split into savings, bills, and flex buckets the moment it arrives.</p>
-            </div>
-            <div class="card loop-card reveal" style="--c: var(--amber); --d: 500ms;">
-              <div class="step">04 / NUDGE</div>
-              <h3>No vague future</h3>
-              <p>Seasonal savings, squads, and projections make future tradeoffs visible now.</p>
+            <div class="card" style="padding:30px 32px;">
+              <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--green);margin-bottom:12px;">The result</div>
+              <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.25;">Good money behaviour becomes the default — not the exception.</div>
             </div>
           </div>
         </div>
       </div>
-      <div class="slide-num">03 / 07</div>
+      <div class="slide-num">03 / 08</div>
     </section>
 
-    <section data-label="The Solution">
-      <div class="slide-inner product-layout">
+    <!-- 04 FIVE PILLARS -->
+    <section data-label="Five Pillars">
+      <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:30px;">
         <div>
           <div class="label-row reveal">
-            <span class="badge cyan">The Solution</span>
-            <span class="meta">04 / 07</span>
+            <span class="badge purple">How It Works</span>
+            <span class="meta">04 / 08</span>
           </div>
-          <h2 class="headline reveal" style="--d: 90ms;">Six engines. Zero willpower required.</h2>
+          <h2 class="headline reveal" style="--d:90ms;font-size:56px;">Five frictions removed. Zero willpower required.</h2>
         </div>
-
-        <div class="feature-map">
-          <div class="module-grid">
-            <div class="card module reveal" style="--c: var(--purple-light); --d: 180ms;">
-              <div class="icon">01</div>
-              <h3>Zero-friction bookkeeping</h3>
-              <p>Voice and receipt photo parsing with structured output for ledger writes.</p>
-            </div>
-            <div class="card module reveal" style="--c: var(--green); --d: 240ms;">
-              <div class="icon">02</div>
-              <h3>Duit auto-reconciliation</h3>
-              <p>Debt records are fuzzy-matched by sender name and amount when money comes in.</p>
-            </div>
-            <div class="card module reveal" style="--c: var(--cyan); --d: 300ms;">
-              <div class="icon">03</div>
-              <h3>Arus Safe-to-Spend</h3>
-              <p>Daily budget and Debt Shield coverage calculated from obligations. AI split recommendations tuned in
-                real time.</p>
-            </div>
-            <div class="card module reveal" style="--c: var(--pink); --d: 360ms;">
-              <div class="icon">04</div>
-              <h3>Musim event savings</h3>
-              <p>Raya, PTPTN, and semester fees become daily auto-save targets. Vercel cron fires at 00:00 MYT — no
-                manual action needed.</p>
-            </div>
-            <div class="card module reveal" style="--c: var(--amber); --d: 420ms;">
-              <div class="icon">05</div>
-              <h3>Kawan multi-squad</h3>
-              <p>Squad switcher across multiple groups. Leaderboard ranked by savings rate, not net worth. Privacy-first
-                accountability.</p>
-            </div>
-            <div class="card module reveal" style="--c: var(--purple-light); --d: 480ms;">
-              <div class="icon">06</div>
-              <h3>SnapIt Rewind</h3>
-              <p>Claude reads 30 days of raw transactions and writes a 5-card personalised financial story — Spotify
-                Wrapped for your money.</p>
-            </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;align-self:center;">
+          <div class="card reveal" style="--d:160ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--purple-light);">01</div>
+            <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--purple-light);">No<br>Data<br>Entry</div>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">AI-native voice and receipt scanning instantly captures and categorises spending.</p>
+            <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">Voice + OCR</code>
           </div>
-
-          <div class="card autopilot-card reveal" style="--d: 260ms;">
-            <span class="badge">Core Product Thesis</span>
-            <div class="big">Good money behaviour becomes the default.</div>
-            <p class="copy">
-              SnapIt does not lecture the user. It removes the tiny decisions where discipline fails:
-              recording, splitting, saving, settling, planning, and reflecting.
-            </p>
-            <div class="pipeline">
-              <div class="pipe-node"><span>IN</span>Voice / Receipt</div>
-              <div class="pipe-node"><span>AI</span>Intent + extraction</div>
-              <div class="pipe-node"><span>CORE</span>Ledger + debts</div>
-              <div class="pipe-node"><span>AUTO</span>Arus + Musim cron</div>
-              <div class="pipe-node"><span>UX</span>Squads + Cermin</div>
-              <div class="pipe-node"><span>REWIND</span>Monthly AI story</div>
-            </div>
+          <div class="card reveal" style="--d:220ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--green);">02</div>
+            <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--green);">No<br>Debt<br>Chasing</div>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">Auto-divides bills among friends and seamlessly settles shared expenses when money arrives.</p>
+            <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">Auto-reconcile</code>
+          </div>
+          <div class="card reveal" style="--d:280ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--cyan);">03</div>
+            <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--cyan);">No<br>Salary<br>Drift</div>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">The moment payday hits, income is instantly auto-split into distinct buckets before you overspend.</p>
+            <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">Arus Engine</code>
+          </div>
+          <div class="card reveal" style="--d:340ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--amber);">04</div>
+            <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--amber);">No<br>Solo<br>Journeys</div>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">Saving Squads make financial goals a collaborative, accountable experience with live leaderboards.</p>
+            <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">Squad System</code>
+          </div>
+          <div class="card reveal" style="--d:400ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,rgba(236,72,153,0.26),rgba(124,58,237,0.18)),var(--surface);box-shadow:inset 0 0 0 1px rgba(236,72,153,0.32);">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--pink);">05 · NEW</div>
+            <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--pink);">No<br>More<br>Samans</div>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">CarPlay integration detects your location and auto-starts your parking session. No more RM30 fines for a 60-sen fee.</p>
+            <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(236,72,153,0.15);color:var(--pink);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">CarPlay + Auto-pay</code>
           </div>
         </div>
       </div>
-      <div class="slide-num">04 / 07</div>
+      <div class="slide-num">04 / 08</div>
     </section>
 
+    <!-- 05 TECH STACK -->
+    <section data-label="Built With">
+      <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:36px;">
+        <div>
+          <div class="label-row reveal">
+            <span class="badge green">Under the Hood</span>
+            <span class="meta">05 / 08</span>
+          </div>
+          <h2 class="headline reveal" style="--d:90ms;">This is not a mockup. The MVP is live.</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-self:center;">
+          <div class="card reveal" style="--d:160ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
+            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">📱</div>
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--green);margin-bottom:10px;">Frontend</div>
+            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Mobile-first Next.js</h3>
+            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Five core tabs rendering a GXBank-style experience on Next.js 16.</p>
+            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">components/snapit/*</code>
+          </div>
+          <div class="card reveal" style="--d:230ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
+            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">🧠</div>
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--purple-light);margin-bottom:10px;">AI Parsing</div>
+            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Claude via OpenRouter</h3>
+            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Voice and receipt pipelines call Claude to structure messy real-world data instantly into ledger entries.</p>
+            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">/api/parse-voice</code>
+          </div>
+          <div class="card reveal" style="--d:300ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
+            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">🔒</div>
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">Data Layer</div>
+            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Prisma Double-Entry Ledger</h3>
+            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Bulletproof double-entry ledger for wallets, transfers, and debt settlement with full audit trail.</p>
+            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">lib/finance/transfer.ts</code>
+          </div>
+          <div class="card reveal" style="--d:370ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
+            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">⚡</div>
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;">Intelligence Layer</div>
+            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Daily Crons on Live State</h3>
+            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Seasonal savings, Safe-to-Spend calculations, and real-time leaderboards running on live data.</p>
+            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">lib/finance/*</code>
+          </div>
+        </div>
+      </div>
+      <div class="slide-num">05 / 08</div>
+    </section>
+
+    <!-- 06 LIVE DEMO -->
     <section data-label="Live Demo">
       <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:28px;">
         <div class="label-row reveal">
           <span class="badge purple">Live Demo</span>
-          <span class="meta">05 / 07</span>
+          <span class="meta">06 / 08</span>
         </div>
         <div class="reveal" style="--d:120ms;display:flex;align-items:center;justify-content:center;">
           <video
@@ -1322,68 +1337,69 @@
           ></video>
         </div>
       </div>
-      <div class="slide-num">05 / 07</div>
+      <div class="slide-num">06 / 08</div>
     </section>
 
-    <section data-label="Built MVP">
-      <div class="slide-inner built-layout">
+    <!-- 07 SNAPIT REWIND -->
+    <section data-label="SnapIt Rewind">
+      <div class="slide-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:80px;height:100%;align-items:center;">
         <div>
           <div class="label-row reveal">
-            <span class="badge green">Codebase Audit</span>
-            <span class="meta">06 / 07</span>
+            <span class="badge" style="background:linear-gradient(135deg,var(--grad-from),var(--grad-to));">SnapIt Rewind</span>
+            <span class="meta">07 / 08</span>
           </div>
-          <h2 class="headline reveal" style="--d: 90ms;">This is not a mockup. The MVP path is implemented.</h2>
+          <h2 class="headline reveal" style="--d:90ms;font-size:64px;">Spotify Wrapped,<br><span style="color:var(--purple-light);">but for your money.</span></h2>
+          <p class="body-copy reveal" style="--d:180ms;margin-top:30px;">To keep users engaged, we built <strong>SnapIt Rewind</strong> — an AI-generated monthly summary of your spending behaviour, complete with personalised, actionable recommendations.</p>
+          <div style="margin-top:32px;display:grid;gap:12px;" class="reveal" style="--d:260ms;">
+            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
+              <span style="font-size:20px;">📊</span>
+              <span style="font-size:18px;font-weight:800;color:#fff;">5-card swipeable AI story, generated monthly</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
+              <span style="font-size:20px;">🎯</span>
+              <span style="font-size:18px;font-weight:800;color:#fff;">Personalised, actionable recommendations</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
+              <span style="font-size:20px;">🔁</span>
+              <span style="font-size:18px;font-weight:800;color:#fff;">Spending personality + hidden cost reveals</span>
+            </div>
+          </div>
         </div>
-        <div class="built-grid">
-          <div class="card built-card reveal" style="--d: 160ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">Mobile-first Next app</div>
-            <div class="card-copy">Five core tabs render the GXBank-style experience: Home, Duit, Arus, Kawan, and
-              Cermin.</div>
-            <code>components/kira/*</code>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;" class="reveal" style="--d:200ms;">
+          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#4C1D95,#7C3AED);">
+            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Month</div>
+            <div>
+              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">RM2,240</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">spent in April</div>
+            </div>
           </div>
-          <div class="card built-card reveal" style="--d: 220ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">AI parsing routes</div>
-            <div class="card-copy">Voice and receipt pipelines call Claude through OpenRouter and enforce the structured
-              expense schema.</div>
-            <code>/api/parse-voice</code>
+          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#831843,#EC4899);">
+            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Spending Type</div>
+            <div>
+              <div style="font-size:40px;font-weight:950;letter-spacing:-0.02em;line-height:1.1;color:#fff;">🏄 Weekend<br>Warrior</div>
+            </div>
           </div>
-          <div class="card built-card reveal" style="--d: 280ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">Ledger + transfers</div>
-            <div class="card-copy">Prisma models include wallet accounts, double-entry ledger rows, transfers, and debt
-              settlement links.</div>
-            <code>lib/finance/transfer.ts</code>
+          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#064E3B,#10B981);">
+            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Hidden Cost</div>
+            <div>
+              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">RM936</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">per year on bubble tea</div>
+            </div>
           </div>
-          <div class="card built-card reveal" style="--d: 340ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">Money intelligence engines</div>
-            <div class="card-copy">Arus Safe-to-Spend, Debt Shield, Musim daily cron, Cermin projections, and
-              reconciliation in isolated finance modules.</div>
-            <code>lib/finance/*</code>
-          </div>
-          <div class="card built-card reveal" style="--d: 400ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">Social accountability</div>
-            <div class="card-copy">Multi-squad switcher, leaderboard by savings rate, challenges, streaks, and
-              escrow-style shared buckets wired to live state.</div>
-            <code>/api/kawan</code>
-          </div>
-          <div class="card built-card reveal" style="--d: 460ms;">
-            <div class="status">Live in code</div>
-            <div class="card-title">SnapIt Rewind</div>
-            <div class="card-copy">Claude reads 30 days of raw transactions and writes a 5-card financial story.
-              Swipeable full-screen overlay with Cermin pre-fill on the final card.</div>
-            <code>RewindStory.tsx</code>
+          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#1E3A5F,#3B82F6);">
+            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Unlock</div>
+            <div>
+              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">+RM28k</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">by the time you're 30</div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="slide-num">06 / 07</div>
+      <div class="slide-num">07 / 08</div>
     </section>
 
-
-<section class="close-slide" data-label="Close">
+    <!-- 08 CLOSE -->
+    <section class="close-slide" data-label="Close">
       <div class="slide-inner close-inner">
         <div class="close-copy">
           <div class="line-a reveal">Stop asking Malaysian youth to try harder.</div>

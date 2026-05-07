@@ -140,7 +140,7 @@ export function SheetHeader({ label, onClose }: { label: string; onClose: () => 
 
 export function TabBar({ active, onChange }: { active: TabId; onChange: (tab: TabId) => void }) {
   return (
-    <nav className="absolute bottom-5 left-3 right-3 z-50 grid h-[74px] grid-cols-5 items-center rounded-[28px] border border-white/10 bg-[#16162A]/90 shadow-[0_18px_40px_rgba(0,0,0,.5)] backdrop-blur-xl">
+    <nav className="absolute bottom-5 left-3 right-3 z-50 grid h-[74px] items-center rounded-[28px] border border-white/10 bg-[#16162A]/90 shadow-[0_18px_40px_rgba(0,0,0,.5)] backdrop-blur-xl" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (

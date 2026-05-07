@@ -29,7 +29,7 @@ Malaysian youth don't lack financial awareness — they lack a system that acts 
 1. **Zero-friction bookkeeping** — log expenses by voice or receipt photo in seconds
 2. **Context-aware money intelligence** — automatically reconcile debts, split income into buckets, and plan for known seasonal expenses
 3. **Social accountability** — a squad system that makes saving visible, social, and rewarding
-4. **Behavioural simulation** — a future-self projection that makes the cost of bad habits visceral and real
+4. **Autonomous micro-payments** — location and device-aware automation that removes real-world financial friction entirely
 
 SnapIt is built on GXBank's transaction infrastructure and designed as a native feature extension — not a standalone app competing with GXBank, but a financial intelligence layer on top of it.
 
@@ -110,12 +110,12 @@ SnapIt is built on GXBank's transaction infrastructure and designed as a native 
 - On partial match (below tolerance): debt marked `partial`, remaining balance decremented
 - On no match: returns `matched: false` — no record created, user informed
 - In production: GXBank incoming transfer webhook replaces the manual trigger, same reconciliation engine fires automatically
-- Duit screen has 4 tabs: Transactions, Owes Me, I Owe, Transfers
+- Wallet screen has 4 tabs: Transactions, Owes Me, I Owe, Transfers
   - **Owes Me**: outstanding total, manual reconcile form, list of `owe_me` debt cards with "Request" shortcut (pre-fills the reconcile form)
   - **I Owe**: total you owe (amber), list of `i_owe` debt cards with "Pay" button → opens TransferSheet
   - **Transfers**: history of sent/received transfers with direction, counterparty, amount, date, note
 
-**Feature B: Safe-to-Spend Autopilot — Arus (Automated Financial Orchestration Layer)**
+**Feature B: Safe-to-Spend Autopilot — Flow (Automated Financial Orchestration Layer)**
 
 Arus is an intelligent daily-budget autopilot that answers one question: *"How much can I spend today without blowing up my month?"*
 
@@ -139,12 +139,13 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 1. **Safe-to-Spend Hero Card** — large daily budget number, days until salary, shield coverage %, total runway (safeToSpendUntilSalary). Cyan gradient card with Debt Shield status badge
 2. **Salary Flow Animation** — animated purple orb with cyan/violet/amber drops flowing into 3 streams (Savings / Bills / Flex)
 3. **Debt Shield Panel** — total obligations for this cycle, progress bar for coverage %, line-item commitments (bills shield, debt due, upcoming Musim events)
-4. **AI Split Recommendation** — suggested savings/bills/flex % with reasoning. Two CTAs: "Tune split" (manual editor) and "Cermin impact" (jumps to Cermin with recommended savings pre-filled for 12-month projection)
+4. **AI Split Recommendation** — suggested savings/bills/flex % with reasoning. CTA: "Tune split" (opens manual split editor)
 5. **Run salary autopilot** — triggers `POST /api/arus` salary split; plan recalculates reactively
 6. **Split confirmation line** — single inline line below the button: `Savings RM X · Bills RM X · Flex RM X`, color-coded by bucket type. Live-updates after autopilot runs. Replaces the previous 3-card "Live Pockets" layout
+7. **Smart Auto-Pay** — Bills bucket extension for automated real-world micro-payments. Configured as a read-only list of location + trigger rules. Demo entry: SS2 Damansara Parking (RM1.00/hr, CarPlay-disconnected trigger, from Bil Tetap). When triggered, a rich notification slides in from the top: "CarPlay disconnected · SS2 Damansara / Street parking paid · RM1.00 from Bil Tetap." Demonstrates that Kira's Bills bucket can act autonomously on location + device context — removing the friction that causes users to skip RM1 parking and incur RM30 fines. UI-only state (no API/DB).
 
 **Integration with other features:**
-- Reads from **Musim** (seasonal costs added to shield target), **Duit** (debts factored into shield), and **Cermin** (recommended savings pre-fills projection)
+- Reads from **Musim** (seasonal costs added to shield target) and **Wallet** (debts factored into shield)
 - Any change to buckets, debts, transactions, or Musim events immediately recalculates the plan via `useMemo`
 
 **Feature C: Seasonal Financial Awareness — Musim (Contextual Event-Driven Savings Automation)**
@@ -169,7 +170,7 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 
 ---
 
-### 4.3 Social Accountability — Kawan Duit (Social Reinforcement Loop)
+### 4.3 Social Accountability — Squad (Social Reinforcement Loop)
 
 **Feature A: Multi-Squad System**
 - A user can join multiple squads (e.g. "KL Kawan Crew" for work friends, "Cyberjaya Savers" for housemates)
@@ -177,7 +178,7 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 - Squad switcher at the top of the Kawan tab lets the user toggle between squads instantly
 - Each squad member's savings streak and savings rate (% of income) are visible within that squad — never raw amounts (privacy-first)
 - Leaderboard ranked by savings rate, not net worth — levels the playing field
-- Squad membership is managed through the `squad_members` join table (many-to-many)
+- Squad membership managed through the `squad_members` join table (many-to-many)
 
 **Feature B: Streaks & Milestones**
 - Streak is maintained per squad: completing a challenge day increments streak, breaking it resets to 0
@@ -200,16 +201,6 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 
 ---
 
-### 4.4 Future Self Projection — Cermin (Longitudinal Behavioural Financial Simulation)
-
-- Displays two projected financial states from current age to age 85: "Current You" vs "Optimised You"
-- User adjusts 3 sliders: **Monthly savings** (RM0–600 added), **Food & drinks cut** (RM0–400 reduced), **Transport cut** (RM0–250 reduced). Combined delta is added to the optimised savings rate
-- Compound growth formula (`buildProjection`) recalculates in real time using 4% p.a. baseline return (ASB / fixed deposit baseline for Malaysian context)
-- Visual: dual area chart (dashed grey = current, solid cyan = optimised), RM delta badge between "Current You" and "Optimised You" end values
-- Sliders can be pre-filled from two sources: Arus "Cermin impact" CTA (pre-fills monthly savings), and Rewind Card 5 "Apply to Cermin" (pre-fills the matching category slider)
-- Starting balance hardcoded to RM4,200 for Amirah demo persona; current monthly savings hardcoded to RM50 baseline
-
----
 
 ### 4.5 SnapIt Rewind — AI-Generated Monthly Financial Story
 
@@ -246,8 +237,7 @@ The LLM is the author, not a template-filler. Every card is written by Claude in
 
 **Card 5 — Your One Unlock**
 - Single most impactful behavioural change for next month
-- Includes: what to change, estimated monthly saving, and Cermin projection delta
-- CTA: "Apply to Cermin" — pre-fills the matching slider and animates the projection
+- Includes: what to change, estimated monthly saving, and compound impact by age 30
 - E.g. *"If you cut dining out by 30%, you'd save RM280/month. By 30, that's RM28,600 more."*
 
 ---
@@ -338,7 +328,7 @@ Claude output schema:
 - Progress dots at top (5 dots, active one highlighted)
 - Background: deep gradient that shifts per card type (purple → magenta → cyan → amber → green)
 - Typography: large, bold, emotional — not dashboard-style
-- Card 5 "Apply to Cermin" button exits the story and navigates to Cermin with slider pre-filled
+- Card 5 shows the compound impact number directly — no further navigation required
 
 ```
 ┌─────────────────────────────────────────┐
@@ -371,7 +361,6 @@ Claude output schema:
 | Archetype assignment | AI-driven financial persona classification |
 | Non-obvious pattern detection | Unsupervised behavioural pattern extraction |
 | Hidden cost annualisation | Visceral compound-cost reframing |
-| Unlock → Cermin slider link | Closed-loop projection feedback system |
 | Monthly story generation | Narrative financial intelligence report |
 
 ---
@@ -391,7 +380,7 @@ Hero gradient:    #4C1D95 → #831843  (GXBank signature purple-to-magenta, top 
 Primary CTA:      #7C3AED  (purple — all circular action buttons)
 Primary light:    #A78BFA  (hover/pressed states)
 
-Savings accent:   #22D3EE  (cyan — used for savings buckets, Arus, Cermin positive line)
+Savings accent:   #22D3EE  (cyan — used for savings buckets, Flow safe-to-spend hero)
 Positive:         #4ADE80  (green — credit transactions, settled debts)
 Alert badge:      #EC4899  (hot pink — Musim countdowns, streak milestones, NEW labels)
 Warning:          #F59E0B  (amber — overbudget nudges, risk alerts)
@@ -412,12 +401,12 @@ Text muted:       #6B7280
 ### Signature Patterns Per Screen
 | Screen | GXBank Pattern Used |
 |---|---|
-| Home, Arus, Cermin | Purple-magenta gradient header |
+| Home, Flow | Purple-magenta gradient header |
 | All action buttons (Voice, Receipt, Request) | Purple circles — identical to GXBank's Add/Scan/Send |
-| Arus safe-to-spend hero | Cyan gradient hero card — mirrors GXBank balance display |
-| Arus debt shield | Commitment list with coverage progress — mirrors GXBank Pockets layout |
-| Duit transaction list | Date-grouped rows — mirrors GXBank account detail |
-| Kawan squad tab | Blob/wave background — mirrors GXBank Rewards page |
+| Flow safe-to-spend hero | Cyan gradient hero card — mirrors GXBank balance display |
+| Flow debt shield | Commitment list with coverage progress — mirrors GXBank Pockets layout |
+| Wallet transaction list | Date-grouped rows — mirrors GXBank account detail |
+| Squad tab | Blob/wave background — mirrors GXBank Rewards page |
 | Savings balances | Cyan accent — mirrors GXBank "Up to 3.55% p.a." chip |
 
 ### Tailwind Config
@@ -441,11 +430,11 @@ colors: {
 ```
 
 ### Animation
-- **Arus salary split:** Money flows from center orb into 3 streams (Framer Motion), then safe-to-spend number scales up
-- **Arus shield status:** Progress bar animates from current to new coverage after salary split
+- **Flow salary split:** Money flows from center orb into 3 streams (Framer Motion), then safe-to-spend number scales up
+- **Flow shield status:** Progress bar animates from current to new coverage after salary split
+- **Smart Auto-Pay notification:** Rich banner slides in from top, auto-dismisses after 4.5s
 - **Transaction logged:** Card slides up from bottom, snaps into list
 - **Debt settled:** Row fades with green checkmark pulse
-- **Cermin slider:** Chart redraws with spring curve on every slider change
 - **Streak milestone:** Confetti burst → squad notification slides in
 
 ---
@@ -458,7 +447,6 @@ colors: {
 │         Next.js 14 (App Router)                  │
 │         Tailwind CSS + shadcn/ui                 │
 │         Framer Motion (animations)               │
-│         Recharts (Cermin projection)             │
 │         Web Speech API (voice capture)           │
 └──────────────────┬──────────────────────────────┘
                    │ API Routes
@@ -532,15 +520,13 @@ These terms must be used consistently across the codebase, demo narration, and p
 | Debt shield coverage | Obligation coverage assessment with triage classification |
 | AI split recommendation | Context-aware allocation optimisation with behavioural framing |
 | Debt payment → flex deduction | Symmetric bucket settlement: outgoing transfer debits flex bucket to prevent safe-to-spend inflation |
-| Arus → Cermin link | Closed-loop plan-to-projection feedback system |
-| Cermin projection | Longitudinal behavioural financial simulation |
 | Squad streaks | Social reinforcement loop with gamified commitment mechanics |
 | Musim | Contextual event-driven savings automation |
 | Musim daily deduction | Idempotent flex-to-savings transfer gated by `lastAutoSaveDate`, executed by Vercel cron at 00:00 MYT |
 | Shared bucket | Escrow-like distributed group fund with auto-settlement |
 | SnapIt Rewind story generation | Narrative financial intelligence report via holistic transaction analysis |
 | Archetype assignment | AI-driven financial persona classification |
-| Unlock → Cermin slider pre-fill | Closed-loop projection feedback system |
+| Smart Auto-Pay trigger | Location + device-aware autonomous micro-payment from Bills bucket |
 
 ---
 
@@ -561,30 +547,36 @@ STEP 2 — AUTO-RECONCILE (Feature 2A)
   Status updated to settled ✓, context shown: "Ali — Nando's Midvalley"
   Duration: ~10 seconds
 
-STEP 3 — ARUS SAFE-TO-SPEND (Feature 2B)
-  Open Arus tab → Safe-to-Spend shows RM28.61/day
+STEP 3 — FLOW SAFE-TO-SPEND (Feature 2B)
+  Open Flow tab → Safe-to-Spend shows RM28.61/day
   Debt Shield shows 72% coverage (Watch zone) — RM585 needed, RM420 funded
   Tap "Run salary autopilot" → RM2,800 splits: RM560 savings / RM840 bills / RM1,400 flex
   Inline split line updates live: "Savings RM560 · Bills RM840 · Flex RM1,400"
   Safe-to-Spend recalculates → shield coverage jumps to Protected
-  AI recommends 20/25/55 split → tap "Cermin impact" to see 12-month projection
+  AI recommends 20/25/55 split → "Tune split" to adjust manually
   Duration: ~20 seconds
+
+STEP 3B — SMART AUTO-PAY (Feature 2B extension)
+  Scroll to bottom of Arus → Smart Auto-Pay config card visible
+  Presenter taps the green dot → rich banner slides from top:
+    "CarPlay disconnected · SS2 Damansara"
+    "Street parking paid · RM1.00 from Bil Tetap"
+  Banner auto-dismisses after 4.5 seconds
+  Duration: ~5 seconds
 
 STEP 4 — MUSIM (Feature 2C)
   Banner appears: "Hari Raya in 58 days"
   Tap → plan detail: RM8.62/day auto-savings activated
   Duration: ~10 seconds
 
-STEP 5 — CERMIN + MULTI-SQUAD (Features 3 + 4)
-  Open Cermin → graph shows RM4,200 at age 30 (current trajectory)
-  Drag savings slider +RM200/month → graph updates → RM28,600
-  Switch to Kawan tab → squad switcher shows "KL Kawan Crew" + "Cyberjaya Savers"
+STEP 5 — SQUAD (Feature 3)
+  Switch to Squad tab → squad switcher shows "KL Kawan Crew" + "Cyberjaya Savers"
   Tap "KL Kawan Crew" → Day 15 streak → 5-member leaderboard → friends react 🔥
   Tap "Cyberjaya Savers" → different leaderboard, different challenge ("Save RM50 This Week")
   Shared bucket switches too: "Bali Trip 2027" → "Weekly Lunch Fund"
-  Duration: ~20 seconds
+  Duration: ~15 seconds
 
-TOTAL DEMO TIME: ~75 seconds
+TOTAL DEMO TIME: ~70 seconds
 ```
 
 ---
@@ -607,7 +599,7 @@ TOTAL DEMO TIME: ~75 seconds
 |---|---|---|
 | **Day 1** | Foundation + Voice/Receipt input | Voice → transaction and receipt → transaction working end-to-end |
 | **Day 2** | Debt reconciliation + Arus + Musim | Full intelligence layer functional |
-| **Day 3** | Cermin + Squad + Shared Bucket UI | Social and visualization layer complete |
+| **Day 3** | Squad + Shared Bucket + Smart Auto-Pay UI | Social layer and automation demo complete |
 | **Day 4** | Polish + Demo path + Pitch | Flawless demo path, pitch deck done, rehearsed x3 |
 
 **70% checkpoint: Day 3 evening** — one person stops coding and switches to pitch full-time.
@@ -620,6 +612,6 @@ TOTAL DEMO TIME: ~75 seconds
 |---|---|
 | **Overall Appearance** | Mobile-first UI with polished fintech aesthetic, animated transitions, pre-seeded realistic data |
 | **Creativity / Innovation** | First app to combine zero-friction LLM bookkeeping + event-driven reconciliation + social reinforcement in Malaysian market |
-| **Functionality** | Full demo path works end-to-end: voice → log → reconcile → split → plan → visualize → social |
+| **Functionality** | Full demo path works end-to-end: voice → log → reconcile → split → plan → auto-pay → social → rewind |
 | **Impact** | Targets 3M+ GXBank users; data flywheel moat; directly addresses 67% of Malaysian youth with zero savings |
 | **Relevance to Audience** | Built for Malaysian context: ringgit, PTPTN, Raya, ASB — not a generic Western savings app |

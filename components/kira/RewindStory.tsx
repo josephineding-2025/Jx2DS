@@ -287,15 +287,7 @@ function HiddenCostCard({ card, index }: { card: RewindHiddenCostCard; index: nu
   );
 }
 
-function UnlockCard({
-  card,
-  index,
-  onApply,
-}: {
-  card: RewindUnlockCard;
-  index: number;
-  onApply: () => void;
-}) {
+function UnlockCard({ card, index }: { card: RewindUnlockCard; index: number }) {
   const accent = CARD_ACCENT[index];
   return (
     <CardShell
@@ -329,21 +321,6 @@ function UnlockCard({
               </p>
             </div>
           </div>
-          {card.cermin_slider_key && (
-            <button
-              className="flex min-h-[52px] w-full items-center justify-between rounded-full bg-white px-5 text-[14px] font-black"
-              style={{ color: "#022C22" }}
-              onClick={onApply}
-            >
-              <span>Apply to Cermin</span>
-              <span
-                className="rounded-full px-3 py-1 text-[12px]"
-                style={{ background: "rgba(0,0,0,0.12)" }}
-              >
-                RM {card.monthly_saving}/mo →
-              </span>
-            </button>
-          )}
         </>
       }
     />
@@ -359,11 +336,9 @@ const slideVariants = {
 export function RewindStoryOverlay({
   story,
   onClose,
-  onApplyCermin,
 }: {
   story: RewindStory;
   onClose: () => void;
-  onApplyCermin: (key: string, amount: number) => void;
 }) {
   const [[index, dir], setPage] = useState<[number, number]>([0, 0]);
   const total = story.cards.length;
@@ -455,16 +430,7 @@ export function RewindStoryOverlay({
             {card.type === "pattern" && <PatternCard card={card} index={index} />}
             {card.type === "hidden_cost" && <HiddenCostCard card={card} index={index} />}
             {card.type === "unlock" && (
-              <UnlockCard
-                card={card}
-                index={index}
-                onApply={() => {
-                  if (card.type === "unlock" && card.cermin_slider_key) {
-                    onApplyCermin(card.cermin_slider_key, card.monthly_saving);
-                  }
-                  onClose();
-                }}
-              />
+              <UnlockCard card={card} index={index} />
             )}
           </div>
 

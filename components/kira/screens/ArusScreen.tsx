@@ -3,10 +3,13 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowRight,
   BrainCircuit,
   CalendarDays,
+  Car,
+  Check,
   Loader2,
+  MapPin,
+  Play,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -16,9 +19,9 @@ import {
 import { buildArusPlan, type ArusCommitment } from "@/lib/finance/arus";
 import type { DemoState } from "@/lib/demo/state";
 import type { BucketItem } from "../constants";
-import { BucketCard } from "../cards";
 import { Hero, Pill, Progress, ScreenScroller, SectionHeader, Title } from "../ui";
 import { bucketRank, card, cn, formatMoney, primaryButton, roundButton, secondaryButton } from "../utils";
+
 
 type ArusScreenProps = {
   buckets: BucketItem[];
@@ -30,8 +33,8 @@ type ArusScreenProps = {
   salaryPulse: boolean;
   onSimulateSalary: () => void;
   onEditSplit: () => void;
-  onApplyCermin: (monthlySavings: number) => void;
   simulating: boolean;
+  onTriggerParking: () => void;
 };
 
 function FlowDrops({ active }: { active: boolean }) {
@@ -133,8 +136,8 @@ export function ArusScreen({
   salaryPulse,
   onSimulateSalary,
   onEditSplit,
-  onApplyCermin,
   simulating,
+  onTriggerParking,
 }: ArusScreenProps) {
   const sorted = useMemo(
     () => [...buckets].sort((a, b) => bucketRank(a.type) - bucketRank(b.type)),
@@ -155,7 +158,7 @@ export function ArusScreen({
       <Hero />
       <ScreenScroller>
         <div className="flex items-start justify-between">
-          <Title title="Arus" subtitle="Safe-to-Spend Autopilot" icon={Sparkles} />
+          <Title title="Flow" subtitle="Safe-to-Spend Autopilot" icon={Sparkles} />
           <button className={roundButton("mt-1 size-[34px]")} onClick={onEditSplit} aria-label="Configure split">
             <Settings2 size={16} />
           </button>
@@ -253,29 +256,56 @@ export function ArusScreen({
             <SplitChip label="Bills" value={plan.recommendedSplit.bills} tone="violet" />
             <SplitChip label="Flex" value={plan.recommendedSplit.flex} tone="amber" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button className={secondaryButton("min-h-11")} onClick={onEditSplit}>
-              <Target size={16} />
-              Tune split
-            </button>
-            <button className={secondaryButton("min-h-11 border-[#22D3EE]/35 text-[#CFFAFE]")} onClick={() => onApplyCermin((plan.recommendedSplit.savings / 100) * income)}>
-              Cermin impact
-              <ArrowRight size={16} />
-            </button>
-          </div>
+          <button className={secondaryButton("min-h-11")} onClick={onEditSplit}>
+            <Target size={16} />
+            Tune split
+          </button>
         </section>
 
-        <SectionHeader title="Live Pockets" action="GX-style buckets" />
-        <div className="grid grid-cols-3 gap-2">
-          {sorted.map((bucket) => (
-            <BucketCard key={bucket.id} bucket={bucket} income={income} />
-          ))}
-        </div>
-
-        <button className={primaryButton("mt-4 w-full")} onClick={onSimulateSalary} disabled={simulating}>
+        <button className={primaryButton("w-full")} onClick={onSimulateSalary} disabled={simulating}>
           {simulating ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
           Run salary autopilot
         </button>
+
+        <div className="flex items-center justify-center gap-3 py-1 text-[12px] font-black">
+          {sorted.map((bucket, i) => (
+            <span key={bucket.id} className="flex items-center gap-3">
+              <span className={cn(
+                bucket.type === "savings" && "text-[#22D3EE]",
+                bucket.type === "bills" && "text-[#A78BFA]",
+                bucket.type === "flex" && "text-[#F59E0B]",
+              )}>
+                {bucket.name} {formatMoney(bucket.balance)}
+              </span>
+              {i < sorted.length - 1 && <span className="text-white/20">·</span>}
+            </span>
+          ))}
+        </div>
+
+        <SectionHeader title="Smart Auto-Pay" action="location-aware" />
+        <section className={card("grid gap-3 p-3.5")}>
+          <div className="grid grid-cols-[38px_1fr_auto] items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.035] p-3">
+            <div className="grid size-[38px] place-items-center rounded-full bg-[#7C3AED]/20 text-[#A78BFA]">
+              <MapPin size={17} />
+            </div>
+            <div className="min-w-0">
+              <strong className="block truncate text-[13px] font-black">SS2 Damansara Parking</strong>
+              <span className="mt-0.5 block truncate text-[11px] font-medium text-zinc-500">
+                Location-triggered · CarPlay · from Bil Tetap
+              </span>
+            </div>
+            <button
+              onClick={onTriggerParking}
+              className="grid size-6 place-items-center rounded-full bg-[#4ADE80]/20 text-[#4ADE80]"
+              aria-label="Trigger demo"
+            >
+              <Play size={10} fill="currentColor" />
+            </button>
+          </div>
+          <p className="text-[11px] text-zinc-500">
+            Kira monitors your location and CarPlay status — when you park and disconnect, the meter is paid automatically from your Bills bucket.
+          </p>
+        </section>
       </ScreenScroller>
     </>
   );
