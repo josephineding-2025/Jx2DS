@@ -109,12 +109,28 @@ Kira is built on GXBank's transaction infrastructure and designed as a native fe
 - On partial payment: remaining balance updated, user notified
 - On no match: logged as unattributed income for user to categorize
 
-**Feature B: Salary Autopilot — Arus (Automated Financial Orchestration Layer)**
-- User configures split percentages once: e.g. 20% savings / 30% bills / 50% flex
-- When salary is detected (pattern-matched by amount + recurring sender), orchestration layer triggers
-- Animated bucket-split UI shows money flowing into each bucket
-- Each bucket has a balance and spending limit
-- Overspending a bucket triggers a nudge (not a block — behavioural, not punitive)
+**Feature B: Safe-to-Spend Autopilot — Arus (Automated Financial Orchestration Layer)**
+
+Arus is an intelligent daily-budget autopilot that answers one question: *"How much can I spend today without blowing up my month?"*
+
+**Core engine — `buildArusPlan()`:**
+- Pure function that takes the user's full financial picture (buckets, debts, Musim events, recent transactions, income, salary day) and produces a real-time financial plan
+- Computes **Safe-to-Spend Today**: `(Flex balance − shield shortfall) ÷ days until salary` — the single number that replaces budgeting willpower
+- Calculates **Debt Shield coverage**: what % of this cycle's obligations (bills + debts + Musim costs) are already funded — classified as Protected (≥90%), Watch (60-89%), or Tight (<60%)
+- Generates **AI Split Recommendation**: savings/bills/flex percentages tuned to shield coverage and cash flow, with a human-readable reason
+- Handles salary-day edge cases: month-end overflow (day 31 → Feb 28), leap years, missing/null salary day defaults
+
+**Arus screen sections (top to bottom):**
+1. **Safe-to-Spend Hero Card** — large daily budget number, days until salary, shield coverage %, total runway. Cyan gradient card with Debt Shield status badge
+2. **Salary Flow Animation** — animated purple orb with cyan/violet/amber drops flowing into 3 streams
+3. **Debt Shield Panel** — total obligations for this cycle, progress bar for coverage %, line-item commitments (bills shield, debt due, upcoming Musim events)
+4. **AI Split Recommendation** — suggested savings/bills/flex % with reasoning. Two CTAs: "Tune split" (manual editor) and "Cermin impact" (jumps to Cermin with recommended savings pre-filled for 12-month projection)
+5. **Live Pockets** — 3 bucket cards showing current balances
+6. **Run salary autopilot** — triggers `POST /api/arus` salary split; plan recalculates reactively
+
+**Integration with other features:**
+- Reads from **Musim** (seasonal costs added to shield target), **Duit** (debts factored into shield), and **Cermin** (recommended savings pre-fills projection)
+- Any change to buckets, debts, transactions, or Musim events immediately recalculates the plan via `useMemo`
 
 **Feature C: Seasonal Financial Awareness — Musim (Contextual Event-Driven Savings Automation)**
 - Pre-loaded Malaysian financial events:
@@ -124,8 +140,18 @@ Kira is built on GXBank's transaction infrastructure and designed as a native fe
   - PTPTN repayment dates
   - Year-end festive season (Dec)
 - Each event has an estimated cost (user-editable, defaults based on category)
-- System calculates daily micro-savings amount needed and activates automatically
+- `calcMusimEvents()` computes `dailyTarget = estimatedCost / daysRemaining` in real time
 - Displayed as a countdown card on the home screen: *"Raya in 58 days — RM8.62/day auto-saved"*
+
+**Auto-save engine (`lib/finance/musim-autosave.ts`):**
+- When the user toggles auto-save ON, an immediate first deduction fires — no waiting until tomorrow
+- Each day at 00:00 MYT, a Vercel cron (`GET /api/cron/musim-autosave`, secured by `CRON_SECRET`) runs `processAllMusimAutoSaves()` across all users
+- Per-event idempotency: `lastAutoSaveDate` field on `musim_events` gates the deduction to once per calendar day
+- Money movement: `dailyTarget` is deducted from the **flex bucket** and credited to the **savings bucket**; a `Musim Auto-Save` transaction is written to the ledger with `source = "musim"`
+- Partial deduction if flex balance is below `dailyTarget` — never errors, never overdrafts
+- `POST /api/musim/autosave` exposes a manual trigger for the authenticated user (demo use)
+- `MusimCard` shows a green "Saved today" badge when `autoSaveEnabled && savedToday`
+- Arus plan includes active Musim costs in the Debt Shield target, reducing safe-to-spend accordingly
 
 ---
 
@@ -375,7 +401,8 @@ Text muted:       #6B7280
 |---|---|
 | Home, Arus, Cermin | Purple-magenta gradient header |
 | All action buttons (Voice, Receipt, Request) | Purple circles — identical to GXBank's Add/Scan/Send |
-| Arus buckets | Dual card grid — mirrors GXBank Pockets layout |
+| Arus safe-to-spend hero | Cyan gradient hero card — mirrors GXBank balance display |
+| Arus debt shield | Commitment list with coverage progress — mirrors GXBank Pockets layout |
 | Duit transaction list | Date-grouped rows — mirrors GXBank account detail |
 | Kawan squad tab | Blob/wave background — mirrors GXBank Rewards page |
 | Savings balances | Cyan accent — mirrors GXBank "Up to 3.55% p.a." chip |
@@ -401,7 +428,8 @@ colors: {
 ```
 
 ### Animation
-- **Arus salary split:** Money flows from center circle into 3 buckets (Framer Motion)
+- **Arus salary split:** Money flows from center orb into 3 streams (Framer Motion), then safe-to-spend number scales up
+- **Arus shield status:** Progress bar animates from current to new coverage after salary split
 - **Transaction logged:** Card slides up from bottom, snaps into list
 - **Debt settled:** Row fades with green checkmark pulse
 - **Cermin slider:** Chart redraws with spring curve on every slider change
@@ -425,12 +453,15 @@ colors: {
 │                  BACKEND                         │
 │         Next.js API Routes                       │
 │                                                  │
-│  /api/parse-voice    → Claude Haiku              │
-│  /api/parse-receipt  → Claude Sonnet (Vision)    │
-│  /api/reconcile      → Reconciliation engine     │
-│  /api/arus           → Bucket orchestration      │
-│  /api/musim          → Event savings calculator  │
-│  /api/rewind         → Claude Sonnet (story AI)  │
+│  /api/parse-voice          → Claude Haiku                   │
+│  /api/parse-receipt        → Claude Sonnet (Vision)         │
+│  /api/reconcile            → Reconciliation engine          │
+│  /api/arus                 → Bucket orchestration + split   │
+│  /api/musim                → Event savings calculator       │
+│  /api/musim/toggle         → Enable/disable auto-save       │
+│  /api/musim/autosave       → Manual auto-save trigger       │
+│  /api/cron/musim-autosave  → Daily cron (00:00 MYT)         │
+│  /api/rewind               → Claude Sonnet (story AI)       │
 └──────────────────┬──────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────┐
@@ -446,7 +477,7 @@ users              — id, name, income, salary_day
 transactions       — id, user_id, amount, category, merchant, date, source (voice/receipt/manual)
 debt_records       — id, creditor_id, debtor_name, amount, context, status, settled_at
 buckets            — id, user_id, name, percentage, balance, type (savings/bills/flex)
-musim_events       — id, user_id, event_name, event_date, estimated_cost, daily_target
+musim_events       — id, user_id, event_name, event_date, estimated_cost, category, auto_save_enabled, last_auto_save_date
 squad              — id, name
 squad_members      — squad_id, user_id (many-to-many join)
 squad_streaks      — id, user_id, squad_id, current_streak, last_active, savings_rate
@@ -468,9 +499,14 @@ These terms must be used consistently across the codebase, demo narration, and p
 | Receipt → Claude Vision | Multimodal document extraction with structured output enforcement |
 | Debt auto-match | Event-driven reconciliation engine with fuzzy entity matching |
 | Salary auto-split | Automated financial orchestration layer |
+| Safe-to-spend daily budget | Intelligent daily runway calculation with obligation-first reservation |
+| Debt shield coverage | Obligation coverage assessment with triage classification |
+| AI split recommendation | Context-aware allocation optimisation with behavioural framing |
+| Arus → Cermin link | Closed-loop plan-to-projection feedback system |
 | Cermin projection | Longitudinal behavioural financial simulation |
 | Squad streaks | Social reinforcement loop with gamified commitment mechanics |
 | Musim | Contextual event-driven savings automation |
+| Musim daily deduction | Idempotent flex-to-savings transfer gated by `lastAutoSaveDate`, executed by Vercel cron at 00:00 MYT |
 | Shared bucket | Escrow-like distributed group fund with auto-settlement |
 | Kira Rewind story generation | Narrative financial intelligence report via holistic transaction analysis |
 | Archetype assignment | AI-driven financial persona classification |
@@ -495,11 +531,13 @@ STEP 2 — AUTO-RECONCILE (Feature 2A)
   Status updated to settled ✓, context shown: "Ali — Nando's Midvalley"
   Duration: ~10 seconds
 
-STEP 3 — ARUS SALARY SPLIT (Feature 2B)
-  Tap "Simulate salary received" → RM2,800 from employer
-  Animated split: RM560 → Savings / RM840 → Bills / RM1,400 → Flex
-  Buckets update with fill animation
-  Duration: ~15 seconds
+STEP 3 — ARUS SAFE-TO-SPEND (Feature 2B)
+  Open Arus tab → Safe-to-Spend shows RM28.61/day
+  Debt Shield shows 72% coverage (Watch zone) — RM585 needed, RM420 funded
+  Tap "Run salary autopilot" → RM2,800 splits: RM560 savings / RM840 bills / RM1,400 flex
+  Safe-to-Spend recalculates → shield coverage jumps to Protected
+  AI recommends 20/25/55 split → tap "Cermin impact" to see 12-month projection
+  Duration: ~20 seconds
 
 STEP 4 — MUSIM (Feature 2C)
   Banner appears: "Hari Raya in 58 days"
@@ -515,7 +553,7 @@ STEP 5 — CERMIN + MULTI-SQUAD (Features 3 + 4)
   Shared bucket switches too: "Bali Trip 2027" → "Weekly Lunch Fund"
   Duration: ~20 seconds
 
-TOTAL DEMO TIME: ~70 seconds
+TOTAL DEMO TIME: ~75 seconds
 ```
 
 ---

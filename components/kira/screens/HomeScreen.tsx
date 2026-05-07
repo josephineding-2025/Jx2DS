@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Camera, Eye, Mic, Sparkles } from "lucide-react";
+import { Camera, Eye, LogOut, Mic, Sparkles } from "lucide-react";
 import type { DemoState } from "@/lib/demo/state";
 import type { SheetId } from "../constants";
 import { MusimCard, TransactionRow } from "../cards";
@@ -13,11 +13,13 @@ export function HomeScreen({
   onOpenSheet,
   onToggleMusimAutoSave,
   onOpenRewind,
+  onSignOut,
 }: {
   data: DemoState;
   onOpenSheet: (sheet: SheetId) => void;
   onToggleMusimAutoSave: (eventId: string, enabled: boolean) => void;
   onOpenRewind: () => void;
+  onSignOut: () => void;
 }) {
   const balance = Number(data.walletBalanceSen) / 100;
   const savings = data.buckets.find((bucket) => bucket.type === "savings");
@@ -38,9 +40,19 @@ export function HomeScreen({
     <>
       <Hero />
       <ScreenScroller>
-        <div>
-          <p className="mb-2 text-[13px] font-medium text-white/75">{greeting()}, {data.user.name.split(" ")[0]}</p>
-          <h1 className="m-0 text-2xl font-black leading-none">Total balance</h1>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="mb-2 text-[13px] font-medium text-white/75">{greeting()}, {data.user.name.split(" ")[0]}</p>
+            <h1 className="m-0 text-2xl font-black leading-none">Total balance</h1>
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="rounded-full bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
+            aria-label="Sign out"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
 
         <div className="mt-4 flex items-center gap-2.5">
