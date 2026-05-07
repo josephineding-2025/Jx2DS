@@ -132,7 +132,7 @@ function CardShell({
         transition={{ delay: 0.05, duration: 0.35 }}
       >
         <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/30">
-          Kira Rewind
+          SnapIt Rewind
         </p>
         <h2 className="mt-0.5 text-[26px] font-black uppercase leading-tight text-white/80">
           {title}
@@ -521,7 +521,7 @@ export function RewindLoadingOverlay() {
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        Kira is reading your month…
+        SnapIt is reading your month…
       </motion.p>
       <p className="mt-2 text-[11px] text-white/35 tracking-wide">This takes about 10 seconds</p>
     </motion.div>

@@ -7,7 +7,7 @@ const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are Kira, a financial intelligence companion for Malaysian youth.
+const SYSTEM_PROMPT = `You are SnapIt, a financial intelligence companion for Malaysian youth.
 Your job: read a user's raw transaction list for the past month and write their personalised monthly financial story — 5 cards in the style of Spotify Wrapped.
 
 You are the author, not a template-filler. Spot non-obvious patterns: which day of week they splurge, merchant loyalty, spending spikes, emotional spending clusters. Write with warmth, humour, and specificity. Never be generic.
@@ -119,7 +119,7 @@ Monthly income: RM${params.income}
 Transactions (${params.transactions.length} total):
 ${txList}
 
-Write the Kira Rewind story for this user. Return only JSON.`
+Write the SnapIt Rewind story for this user. Return only JSON.`
 
   const messages: Array<{ role: 'system' | 'user'; content: string }> = [
     { role: 'system', content: SYSTEM_PROMPT },

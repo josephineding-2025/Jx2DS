@@ -1,4 +1,4 @@
-# Kira — Implementation Status Report
+# SnapIt — Implementation Status Report
 
 > Audit date: 2026-05-05  
 > Based on: PRD, user flow description, and full codebase inspection
@@ -57,7 +57,7 @@ The user wants Musim reminders personalized from past spending context — e.g.,
 ### Gaps and bugs
 
 **[CRITICAL BUG] Reconcile button is hardcoded to "Ali RM21"**  
-`reconcileAli()` in `KiraApp.tsx:141-160` always posts `{ senderName: "Ali", amount: 21 }`. There is no UI for entering a different sender or amount.  
+`reconcileAli()` in `SnapItApp.tsx:141-160` always posts `{ senderName: "Ali", amount: 21 }`. There is no UI for entering a different sender or amount.  
 During the demo this works for step 2, but it means the reconciliation feature appears completely un-generalizable.  
 **Fix:** Replace the hardcoded button with a small form inside the Duit/Owes Me tab: two inputs (sender name, amount) and a "Match payment" button. Keep a "Demo: Ali RM21" shortcut for the demo path.
 
@@ -99,7 +99,7 @@ This is a **fixed constant** based on the bucket's configured percentage. It doe
 const maxBalance = userIncome * (bucket.percentage / 100);
 const fill = Math.max(6, Math.min(96, (bucket.balance / maxBalance) * 100));
 ```
-To get the income value, pass `data.user.income` from `KiraApp` down through `ArusScreen` to `BucketCard`. Then wrap the `Progress` value in a Framer Motion `animate` to transition from old fill to new fill.
+To get the income value, pass `data.user.income` from `SnapItApp` down through `ArusScreen` to `BucketCard`. Then wrap the `Progress` value in a Framer Motion `animate` to transition from old fill to new fill.
 
 **[BUG] Salary amount in the Arus header is hardcoded**  
 The central circle displays `"RM 2,800"` as a static string (line 481). If the demo is ever run with a different user or different income, it will be wrong.  
@@ -268,9 +268,9 @@ Line 362: `onClick={() => {}}` — the Request button has no handler.
 
 | # | Issue | File | Fix |
 |---|---|---|---|
-| 1 | Cermin sliders start non-zero → chart shows wrong state | `KiraApp.tsx:603-605` | Change all 3 `useState` defaults to `0` |
-| 2 | Bucket progress bar is a constant, doesn't animate fill | `KiraApp.tsx:1163` | Compute fill from `balance / maxBalance`, animate with Framer Motion |
-| 3 | Reconcile button hardcoded to "Ali RM21" | `KiraApp.tsx:141-160` | Add name + amount inputs, keep demo shortcut |
+| 1 | Cermin sliders start non-zero → chart shows wrong state | `SnapItApp.tsx:603-605` | Change all 3 `useState` defaults to `0` |
+| 2 | Bucket progress bar is a constant, doesn't animate fill | `SnapItApp.tsx:1163` | Compute fill from `balance / maxBalance`, animate with Framer Motion |
+| 3 | Reconcile button hardcoded to "Ali RM21" | `SnapItApp.tsx:141-160` | Add name + amount inputs, keep demo shortcut |
 
 ### High priority (demo quality)
 

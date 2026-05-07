@@ -16,9 +16,9 @@ export function SeedScreen({
         <div className="grid size-[70px] place-items-center rounded-full bg-[radial-gradient(circle_at_35%_28%,#c4b5fd,#6d28d9_70%)] shadow-[0_0_34px_rgba(167,139,250,.5)]">
           <Sparkles size={28} />
         </div>
-        <h1 className="m-0 text-[42px] font-black">Kira</h1>
+        <h1 className="m-0 text-[42px] font-black">SnapIt</h1>
         <p className="m-0 max-w-[280px] leading-6 text-zinc-400">
-          Set up Amirah&apos;s account to explore Kira.
+          Set up Amirah&apos;s account to explore SnapIt.
         </p>
         <button className={primaryButton()} onClick={onSeed} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}

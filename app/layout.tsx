@@ -3,7 +3,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kira",
+  title: "SnapIt",
   description: "AI financial resilience companion for Malaysian youth.",
 };
 

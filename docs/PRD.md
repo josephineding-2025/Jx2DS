@@ -1,4 +1,4 @@
-# Kira — Product Requirements Document
+# SnapIt — Product Requirements Document
 
 > **Tagline:** Your money, on autopilot.
 > **Challenge:** GXBank Youth Resilience Challenge
@@ -24,14 +24,14 @@ Malaysian youth don't lack financial awareness — they lack a system that acts 
 
 ## 2. Solution Overview
 
-**Kira** is an AI-powered financial resilience companion for Malaysian students and fresh graduates. It removes every friction point in financial management through:
+**SnapIt** is an AI-powered financial resilience companion for Malaysian students and fresh graduates. It removes every friction point in financial management through:
 
 1. **Zero-friction bookkeeping** — log expenses by voice or receipt photo in seconds
 2. **Context-aware money intelligence** — automatically reconcile debts, split income into buckets, and plan for known seasonal expenses
 3. **Social accountability** — a squad system that makes saving visible, social, and rewarding
 4. **Behavioural simulation** — a future-self projection that makes the cost of bad habits visceral and real
 
-Kira is built on GXBank's transaction infrastructure and designed as a native feature extension — not a standalone app competing with GXBank, but a financial intelligence layer on top of it.
+SnapIt is built on GXBank's transaction infrastructure and designed as a native feature extension — not a standalone app competing with GXBank, but a financial intelligence layer on top of it.
 
 ---
 
@@ -71,7 +71,7 @@ Kira is built on GXBank's transaction infrastructure and designed as a native fe
 - If participants are tagged, individual shares are computed and debt records created
 
 **Feature C: WhatsApp Receipt Forward** *(nice-to-have)*
-- User forwards a receipt image from WhatsApp into Kira
+- User forwards a receipt image from WhatsApp into SnapIt
 - Triggers same multimodal extraction pipeline
 
 **Feature D: Bank Statement Import** *(nice-to-have)*
@@ -197,7 +197,7 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 
 ---
 
-### 4.5 Kira Rewind — AI-Generated Monthly Financial Story
+### 4.5 SnapIt Rewind — AI-Generated Monthly Financial Story
 
 **Overview:**
 A monthly AI-generated "story" in the style of Spotify Wrapped. Claude Sonnet reads the user's full raw transaction history for the month — not a pre-aggregated breakdown — and writes a personalised, narrative-driven financial report surfacing non-obvious behavioural patterns. Delivered as a sequence of swipeable full-screen cards, each revealing a different insight. Feels like a reward, not a report.
@@ -319,7 +319,7 @@ Claude output schema:
 
 **UI: Full-Screen Swipeable Story**
 
-- Entry point: "Kira Rewind" banner on the Home screen (`[YOUR MONTH IN REVIEW →]`)
+- Entry point: "SnapIt Rewind" banner on the Home screen (`[YOUR MONTH IN REVIEW →]`)
 - Opens as a full-screen overlay on top of the app (z-index above tabs)
 - Each card fills the screen — swipe left/right to navigate, tap X to exit
 - Progress dots at top (5 dots, active one highlighted)
@@ -366,7 +366,7 @@ Claude output schema:
 ## 5. UI Design Language
 
 ### Philosophy
-Kira mirrors GXBank's visual identity so it reads as a natural feature extension — not a competing app. Judges from GXBank should feel at home immediately.
+SnapIt mirrors GXBank's visual identity so it reads as a natural feature extension — not a competing app. Judges from GXBank should feel at home immediately.
 
 ### Color Tokens
 ```
@@ -508,7 +508,7 @@ These terms must be used consistently across the codebase, demo narration, and p
 | Musim | Contextual event-driven savings automation |
 | Musim daily deduction | Idempotent flex-to-savings transfer gated by `lastAutoSaveDate`, executed by Vercel cron at 00:00 MYT |
 | Shared bucket | Escrow-like distributed group fund with auto-settlement |
-| Kira Rewind story generation | Narrative financial intelligence report via holistic transaction analysis |
+| SnapIt Rewind story generation | Narrative financial intelligence report via holistic transaction analysis |
 | Archetype assignment | AI-driven financial persona classification |
 | Unlock → Cermin slider pre-fill | Closed-loop projection feedback system |
 
@@ -585,7 +585,7 @@ TOTAL DEMO TIME: ~75 seconds
 
 ## 11. Judging Rubric Alignment
 
-| Rubric Element | How Kira Addresses It |
+| Rubric Element | How SnapIt Addresses It |
 |---|---|
 | **Overall Appearance** | Mobile-first UI with polished fintech aesthetic, animated transitions, pre-seeded realistic data |
 | **Creativity / Innovation** | First app to combine zero-friction LLM bookkeeping + event-driven reconciliation + social reinforcement in Malaysian market |

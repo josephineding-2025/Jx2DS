@@ -34,7 +34,7 @@ export default function LoginPage() {
       <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#16162A] p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold tracking-tight text-white">
-            Kira
+            SnapIt
           </h1>
           <p className="mt-2 text-sm text-[#9CA3AF]">
             Choose who you are to continue

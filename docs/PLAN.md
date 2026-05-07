@@ -1,9 +1,9 @@
-# Kira — Development Plan
+# SnapIt — Development Plan
 
 ## Context
-Solo 4-day hackathon build for the GXBank Youth Resilience Challenge. Kira is a mobile-first web app (Next.js) that acts as an AI-powered financial resilience companion for Malaysian youth. The plan is optimized for demo reliability over feature completeness — every decision prioritizes the 5-step Amirah demo path working flawlessly.
+Solo 4-day hackathon build for the GXBank Youth Resilience Challenge. SnapIt is a mobile-first web app (Next.js) that acts as an AI-powered financial resilience companion for Malaysian youth. The plan is optimized for demo reliability over feature completeness — every decision prioritizes the 5-step Amirah demo path working flawlessly.
 
-PRD: `/Users/choijs/projects/Kira/docs/PRD.md`
+PRD: `/Users/choijs/projects/SnapIt/docs/PRD.md`
 
 ---
 
@@ -22,11 +22,11 @@ PRD: `/Users/choijs/projects/Kira/docs/PRD.md`
 ## Folder Structure
 
 ```
-Kira/
+SnapIt/
 ├── app/
 │   ├── layout.tsx                  # Root layout + metadata
 │   ├── globals.css                 # Tailwind import + small global helpers
-│   ├── page.tsx                    # Server-loads demo state, renders KiraApp
+│   ├── page.tsx                    # Server-loads demo state, renders SnapItApp
 │   └── api/
 │       ├── parse-voice/route.ts    # Claude Haiku NLP
 │       ├── parse-receipt/route.ts  # Claude Sonnet Vision
@@ -36,7 +36,7 @@ Kira/
 │       ├── arus/route.ts           # Bucket allocation
 │       └── musim/route.ts          # Event savings calc
 ├── components/
-│   └── kira/KiraApp.tsx            # Tailwind-first app shell + all demo screens
+│   └── kira/SnapItApp.tsx            # Tailwind-first app shell + all demo screens
 ├── lib/
 │   ├── db.ts                       # Prisma 7 singleton
 │   ├── claude/haiku.ts
@@ -275,7 +275,7 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 ## Day-by-Day Checklist
 
 ### Status Update — 2026-05-05 (Session 1)
-- [x] Migrated `docs/kira-ui` mock into real Next/React UI at `components/kira/KiraApp.tsx`
+- [x] Migrated `docs/kira-ui` mock into real Next/React UI at `components/kira/SnapItApp.tsx`
 - [x] Converted implementation to Tailwind-first styling; `app/globals.css` now only holds Tailwind import, global background, scrollbar helper, and keyframes
 - [x] Removed mock phone chrome/status bar; app is now mobile-first web UI with max-width desktop constraint
 - [x] Added `GET /api/demo-state` for aggregated UI data
@@ -315,7 +315,7 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 - [x] `POST /api/musim/toggle`: updates `autoSaveEnabled` on a MusimEvent
 - [x] `POST /api/shared-bucket/contribute`: increments SharedBucketMember.contribution + SharedBucket.balance
 
-**KiraApp.tsx — Full Rewrite (~1800 lines)**
+**SnapItApp.tsx — Full Rewrite (~1800 lines)**
 - [x] `greeting()` helper: Good morning / afternoon / evening based on hour
 - [x] HomeScreen: savings rate from `bucket.percentage`, computed weekly delta, request button wired to sheet
 - [x] DuitScreen: 3-segment control (Transactions / Owes Me / I Owe), reconcile form with name+amount inputs + "Demo: Ali RM21" prefill, escrow concept card, I Owe filters `direction === "i_owe"`
@@ -447,7 +447,7 @@ NEXT_PUBLIC_APP_URL=https://kira.vercel.app
 ## Latest Verification — 2026-05-05 (Session 2)
 
 ```bash
-pnpm exec tsc --noEmit --pretty false         # pass — zero type errors after full KiraApp rewrite
+pnpm exec tsc --noEmit --pretty false         # pass — zero type errors after full SnapItApp rewrite
 pnpm lint                                      # pass — zero errors, zero warnings
 ```
 

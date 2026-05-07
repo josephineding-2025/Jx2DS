@@ -72,7 +72,7 @@ export function HomeScreen({
           </div>
         </div>
 
-        {/* Kira Rewind Banner */}
+        {/* SnapIt Rewind Banner */}
         <button
           className={cn(
             "mt-5 w-full text-left overflow-hidden rounded-[22px]",
@@ -88,7 +88,7 @@ export function HomeScreen({
                   NEW
                 </span>
                 <span className="text-[11px] font-black uppercase tracking-[.15em] text-white/50">
-                  Kira Rewind
+                  SnapIt Rewind
                 </span>
               </div>
               <p className="text-[17px] font-black text-white leading-snug">

@@ -7,7 +7,7 @@ const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are a Malaysian receipt parser for a fintech app called Kira.
+const SYSTEM_PROMPT = `You are a Malaysian receipt parser for a fintech app called SnapIt.
 Your job: extract structured financial data from receipt/invoice images into JSON for a transaction ledger and debt-splitting system.
 
 ## Output schema

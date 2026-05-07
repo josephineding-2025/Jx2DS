@@ -486,7 +486,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           onSave={saveSplit}
         />
 
-        {/* Kira Rewind overlay */}
+        {/* SnapIt Rewind overlay */}
         <AnimatePresence>
           {rewindOpen && rewindLoading && (
             <RewindLoadingOverlay key="rewind-loading" />
