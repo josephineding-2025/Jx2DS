@@ -121,8 +121,10 @@ export function DebtCard({
 
   const handlePay = () => {
     if (!squadMembers || !setTransferSheet || !flash) return;
-    const member = debt.debtorId
-      ? squadMembers.find((m) => m.userId === debt.debtorId)
+    // i_owe: pay the creditor. owe_me: collect from the debtor.
+    const recipientId = iOwe ? debt.creditorId : debt.debtorId;
+    const member = recipientId
+      ? squadMembers.find((m) => m.userId === recipientId)
       : squadMembers.find((m) => m.name.toLowerCase().startsWith(debt.debtorName.toLowerCase()));
     if (!member) {
       flash(`Cannot find user account for ${debt.debtorName}`);

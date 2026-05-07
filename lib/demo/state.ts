@@ -203,7 +203,7 @@ export async function getWalletBalanceSen(userId: string) {
 
 export async function getTransactionsState(userId: string) {
   const transactions = await prisma.transaction.findMany({
-    where: { userId },
+    where: { userId, source: { not: "salary_savings" } },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     take: 40,
   });

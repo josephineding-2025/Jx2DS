@@ -133,6 +133,16 @@ export async function createTransfer(input: TransferInput): Promise<TransferResu
       data: { balanceSen: { increment: amountSen } },
     });
 
+    const flexBucket = await tx.bucket.findFirst({
+      where: { userId: input.fromUserId, type: "flex" },
+    });
+    if (flexBucket) {
+      await tx.bucket.update({
+        where: { id: flexBucket.id },
+        data: { balance: { decrement: Number(formatSenToMyr(amountSen)) } },
+      });
+    }
+
     if (input.debtRecordId) {
       await tx.debtRecord.update({
         where: { id: input.debtRecordId },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth";
-import { getDebtsState, getTransfersState, getWalletBalanceSen } from "@/lib/demo/state";
+import { getBucketsState, getDebtsState, getTransfersState, getWalletBalanceSen } from "@/lib/demo/state";
 import { createTransfer } from "@/lib/finance/transfer";
 
 export async function POST(req: NextRequest) {
@@ -37,14 +37,15 @@ export async function POST(req: NextRequest) {
       note: note ?? undefined,
     });
 
-    const [transfers, debts, walletBalanceSen] = await Promise.all([
+    const [transfers, debts, walletBalanceSen, buckets] = await Promise.all([
       getTransfersState(fromUserId),
       getDebtsState(fromUserId),
       getWalletBalanceSen(fromUserId),
+      getBucketsState(fromUserId),
     ]);
 
     return NextResponse.json(
-      { ok: true, transfer: result, transfers, debts, walletBalanceSen },
+      { ok: true, transfer: result, transfers, debts, walletBalanceSen, buckets },
       { status: 201 },
     );
   } catch (err) {

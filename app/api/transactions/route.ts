@@ -59,10 +59,15 @@ export async function POST(req: NextRequest) {
     }
 
     const saved = await prisma.$transaction(async (tx) => {
+      // Personal spend = total paid minus amounts others owe back
+      const debtTotal = expense.debt_records.reduce((sum, d) => sum + (d.amount ?? 0), 0);
+      const personalAmount = Math.max(0, amount - debtTotal);
+      const personalAmountSen = parseMyrToSen(String(personalAmount));
+
       const transaction = await tx.transaction.create({
         data: {
           userId,
-          amount: -amount,
+          amount: -personalAmount,
           category: expense.category || "Others",
           merchant: expense.merchant || "Unknown merchant",
           date,
@@ -95,12 +100,13 @@ export async function POST(req: NextRequest) {
         await tx.debtRecord.createMany({ data: debtRows });
       }
 
-      // Debit the user's wallet for the expense amount
+      // Wallet debit = full amount paid (float until others repay)
       await tx.ledgerAccount.update({
         where: { userId },
         data: { balanceSen: { decrement: amountSen } },
       });
 
+      // Bucket debit = personal share only
       const category = expense.category || "Others";
       const bucketType = categoryToBucketType(category);
       const bucket = await tx.bucket.findFirst({
@@ -109,7 +115,7 @@ export async function POST(req: NextRequest) {
       if (bucket) {
         await tx.bucket.update({
           where: { id: bucket.id },
-          data: { balance: { decrement: amount } },
+          data: { balance: { decrement: personalAmount } },
         });
       }
 
