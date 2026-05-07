@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BadgeCheck, LogOut } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DemoState } from "@/lib/demo/state";
@@ -164,7 +164,10 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
       applyPatch(result);
       flash("Salary split into buckets");
       window.setTimeout(() => setSalaryPulse(false), 1800);
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "Arus failed");
     } finally {
+      setSalaryPulse(false);
       setBusy(null);
     }
   }, [applyPatch, data?.user.income, flash]);
@@ -254,10 +257,14 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eventId, enabled }),
         });
-        const result = await readJson<DemoStatePatch>(res);
+        const result = await readJson<DemoStatePatch & { autoSaveResult?: { processed: number; totalDeducted: number } }>(res);
         if (!res.ok) throw new Error(result.error ?? "Toggle failed");
         applyPatch(result);
-        flash(enabled ? "Auto-save enabled" : "Auto-save disabled");
+        if (enabled && result.autoSaveResult && result.autoSaveResult.processed > 0) {
+          flash(`Auto-save on — RM${result.autoSaveResult.totalDeducted.toFixed(2)} moved to savings today`);
+        } else {
+          flash(enabled ? "Auto-save enabled" : "Auto-save disabled");
+        }
       } catch {
         flash("Failed to update setting");
       }
@@ -337,6 +344,12 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
     setActiveTab("cermin");
   }, []);
 
+  const applyArusCermin = useCallback((monthlySavings: number) => {
+    setCerminSavings(Math.min(Math.round(monthlySavings), 600));
+    setActiveTab("cermin");
+    flash("Arus plan applied to Cermin");
+  }, [flash]);
+
   const signOut = useCallback(async () => {
     await fetch("/auth/signout", { method: "POST" });
     router.push("/login");
@@ -349,14 +362,6 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
   return (
     <main className="min-h-svh bg-[#07070D] text-white">
       <div className="relative mx-auto min-h-svh w-full max-w-[430px] overflow-hidden bg-[#0A0A14]">
-        <button
-          type="button"
-          onClick={signOut}
-          className="absolute right-4 top-4 z-50 rounded-full bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
-          aria-label="Sign out"
-        >
-          <LogOut size={18} />
-        </button>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -372,6 +377,7 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
                 onOpenSheet={setSheet}
                 onToggleMusimAutoSave={toggleMusimAutoSave}
                 onOpenRewind={openRewind}
+                onSignOut={signOut}
               />
             )}
             {activeTab === "duit" && (
@@ -393,10 +399,15 @@ export function KiraApp({ initialState }: { initialState: DemoState | null }) {
             {activeTab === "arus" && (
               <ArusScreen
                 buckets={data.buckets}
+                debts={data.debts}
+                musimEvents={data.musimEvents}
+                transactions={data.transactions}
                 income={data.user.income}
+                salaryDay={data.user.salaryDay}
                 salaryPulse={salaryPulse}
                 onSimulateSalary={simulateSalary}
                 onEditSplit={() => setEditSplitOpen(true)}
+                onApplyCermin={applyArusCermin}
                 simulating={busy === "salary"}
               />
             )}
