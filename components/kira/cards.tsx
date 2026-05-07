@@ -43,6 +43,12 @@ export function MusimCard({ event, onToggleAutoSave }: { event: MusimItem; onTog
         {event.autoSaveEnabled ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
         Auto-save
       </button>
+      {event.autoSaveEnabled && event.savedToday && (
+        <p className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-[#4ADE80]/80">
+          <Check size={10} />
+          Saved today
+        </p>
+      )}
     </article>
   );
 }

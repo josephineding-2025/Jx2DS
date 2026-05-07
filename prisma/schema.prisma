@@ -83,15 +83,16 @@ model Bucket {
 }
 
 model MusimEvent {
-  id               String   @id @default(uuid())
-  userId           String
-  eventName        String
-  eventDate        DateTime @db.Date
-  estimatedCost    Decimal  @db.Decimal(10, 2)
-  category         String   @default("festive")
-  isSystem         Boolean  @default(false)
-  autoSaveEnabled  Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  id                String    @id @default(uuid())
+  userId            String
+  eventName         String
+  eventDate         DateTime  @db.Date
+  estimatedCost     Decimal   @db.Decimal(10, 2)
+  category          String    @default("festive")
+  isSystem          Boolean   @default(false)
+  autoSaveEnabled   Boolean   @default(false)
+  lastAutoSaveDate  DateTime? @db.Date
+  createdAt         DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -45,6 +45,7 @@ type MusimEventRecord = {
   estimatedCost: DecimalLike;
   category: string;
   autoSaveEnabled: boolean;
+  lastAutoSaveDate: Date | null;
 };
 
 type SharedBucketRecord = {
@@ -136,6 +137,7 @@ export function toMusimEventState(event: MusimEventRecord) {
       estimatedCost: Number(event.estimatedCost),
       category: event.category,
       autoSaveEnabled: event.autoSaveEnabled,
+      lastAutoSaveDate: event.lastAutoSaveDate,
     },
   ])[0] ?? null;
 }
@@ -238,6 +240,7 @@ export async function getMusimEventsState(userId: string) {
       estimatedCost: Number(event.estimatedCost),
       category: event.category,
       autoSaveEnabled: event.autoSaveEnabled,
+      lastAutoSaveDate: event.lastAutoSaveDate,
     })),
   );
 }

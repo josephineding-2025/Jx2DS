@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth";
-import { getMusimEventsState, toMusimEventState } from "@/lib/demo/state";
 import { prisma } from "@/lib/db";
+import { processMusimAutoSavesForUser } from "@/lib/finance/musim-autosave";
+import { getBucketsState, getMusimEventsState, getTransactionsState } from "@/lib/demo/state";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,11 +26,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
+    // When enabling, immediately fire today's deduction for this user
+    let autoSaveResult = null;
+    if (enabled) {
+      autoSaveResult = await processMusimAutoSavesForUser(userId);
+    }
+
+    const [buckets, transactions, musimEvents] = await Promise.all([
+      getBucketsState(userId),
+      getTransactionsState(userId),
+      getMusimEventsState(userId),
+    ]);
+
     return NextResponse.json({
       ok: true,
       autoSaveEnabled: updated[0].autoSaveEnabled,
-      event: toMusimEventState(updated[0]),
-      musimEvents: await getMusimEventsState(userId),
+      autoSaveResult,
+      buckets,
+      transactions,
+      musimEvents,
     });
   } catch (err) {
     console.error("[musim/toggle]", err);
