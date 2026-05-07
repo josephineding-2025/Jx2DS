@@ -103,11 +103,17 @@ SnapIt is built on GXBank's transaction infrastructure and designed as a native 
 ### 4.2 Context-Aware Money Intelligence
 
 **Feature A: Debt Tracking & Auto-Reconciliation (Event-Driven Reconciliation Engine)**
-- When a transaction is logged with participants, debt records are created automatically
-- When an incoming transfer is detected (manual trigger in MVP; GXBank webhook in production), the reconciliation engine fuzzy-matches sender name + amount against outstanding debt records
-- On match: debt record is marked settled, user is notified with context ("Ali paid back his share of Nando's")
-- On partial payment: remaining balance updated, user notified
-- On no match: logged as unattributed income for user to categorize
+- When a transaction is logged with participants, debt records are created automatically with `direction = "owe_me"`; debts created via the "I Owe" flow use `direction = "i_owe"`
+- In MVP, reconciliation is manually triggered: user enters sender name + amount in the "Owes Me" tab → engine fuzzy-matches against all pending `owe_me` debt records
+- Match algorithm (`findBestDebtMatch`): name similarity > 0.7 (token overlap) AND amount within 10% of debt amount (minimum RM1 tolerance)
+- On match within tolerance: debt marked `settled`, incoming amount credited to user's wallet (LedgerAccount)
+- On partial match (below tolerance): debt marked `partial`, remaining balance decremented
+- On no match: returns `matched: false` — no record created, user informed
+- In production: GXBank incoming transfer webhook replaces the manual trigger, same reconciliation engine fires automatically
+- Duit screen has 4 tabs: Transactions, Owes Me, I Owe, Transfers
+  - **Owes Me**: outstanding total, manual reconcile form, list of `owe_me` debt cards with "Request" shortcut (pre-fills the reconcile form)
+  - **I Owe**: total you owe (amber), list of `i_owe` debt cards with "Pay" button → opens TransferSheet
+  - **Transfers**: history of sent/received transfers with direction, counterparty, amount, date, note
 
 **Feature B: Safe-to-Spend Autopilot — Arus (Automated Financial Orchestration Layer)**
 
@@ -116,24 +122,33 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 **Core engine — `buildArusPlan()`:**
 - Pure function that takes the user's full financial picture (buckets, debts, Musim events, recent transactions, income, salary day) and produces a real-time financial plan
 - Computes **Safe-to-Spend Today**: `(Flex balance − shield shortfall) ÷ days until salary` — the single number that replaces budgeting willpower
+  - The daily number spreads total runway across remaining days. Example: paying a RM16.30 debt with 18 days left reduces daily budget by RM0.90, not RM16.30 — the full hit is visible in the Runway metric
+  - Shield shortfall = `max(0, shieldTarget − billsBucketBalance)`. If shield is already fully covered, the shortfall is 0 and paying a debt reduces daily budget directly (money left the flex bucket)
 - Calculates **Debt Shield coverage**: what % of this cycle's obligations (bills + debts + Musim costs) are already funded — classified as Protected (≥90%), Watch (60-89%), or Tight (<60%)
 - Generates **AI Split Recommendation**: savings/bills/flex percentages tuned to shield coverage and cash flow, with a human-readable reason
 - Handles salary-day edge cases: month-end overflow (day 31 → Feb 28), leap years, missing/null salary day defaults
 
+**Reactive updates — what triggers a recalculation:**
+- Logging a spend (voice/receipt): deducts from bills bucket (Bills category) or flex bucket (all other categories) → safe-to-spend recalculates immediately
+- Paying a debt (transfer): deducts from flex bucket AND marks debt settled — the two effects partially cancel (less shield obligation, less flex balance), net impact ≈ 0 when shield had shortfall; small decrease when shield was already covered
+- Running salary autopilot: splits income across all 3 buckets → safe-to-spend recalculates
+- Toggling Musim auto-save: changes `musimNeed` in the shield target → recalculates
+- All recalculation is client-side via `useMemo` — zero additional API calls
+
 **Arus screen sections (top to bottom):**
-1. **Safe-to-Spend Hero Card** — large daily budget number, days until salary, shield coverage %, total runway. Cyan gradient card with Debt Shield status badge
-2. **Salary Flow Animation** — animated purple orb with cyan/violet/amber drops flowing into 3 streams
+1. **Safe-to-Spend Hero Card** — large daily budget number, days until salary, shield coverage %, total runway (safeToSpendUntilSalary). Cyan gradient card with Debt Shield status badge
+2. **Salary Flow Animation** — animated purple orb with cyan/violet/amber drops flowing into 3 streams (Savings / Bills / Flex)
 3. **Debt Shield Panel** — total obligations for this cycle, progress bar for coverage %, line-item commitments (bills shield, debt due, upcoming Musim events)
 4. **AI Split Recommendation** — suggested savings/bills/flex % with reasoning. Two CTAs: "Tune split" (manual editor) and "Cermin impact" (jumps to Cermin with recommended savings pre-filled for 12-month projection)
-5. **Live Pockets** — 3 bucket cards showing current balances
-6. **Run salary autopilot** — triggers `POST /api/arus` salary split; plan recalculates reactively
+5. **Run salary autopilot** — triggers `POST /api/arus` salary split; plan recalculates reactively
+6. **Split confirmation line** — single inline line below the button: `Savings RM X · Bills RM X · Flex RM X`, color-coded by bucket type. Live-updates after autopilot runs. Replaces the previous 3-card "Live Pockets" layout
 
 **Integration with other features:**
 - Reads from **Musim** (seasonal costs added to shield target), **Duit** (debts factored into shield), and **Cermin** (recommended savings pre-fills projection)
 - Any change to buckets, debts, transactions, or Musim events immediately recalculates the plan via `useMemo`
 
 **Feature C: Seasonal Financial Awareness — Musim (Contextual Event-Driven Savings Automation)**
-- Pre-loaded Malaysian financial events:
+- Pre-loaded Malaysian financial events (`isSystem = true`):
   - Hari Raya Aidilfitri
   - Hari Raya Aidiladha
   - University semester fee cycles (Jan, Jul)
@@ -141,7 +156,7 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
   - Year-end festive season (Dec)
 - Each event has an estimated cost (user-editable, defaults based on category)
 - `calcMusimEvents()` computes `dailyTarget = estimatedCost / daysRemaining` in real time
-- Displayed as a countdown card on the home screen: *"Raya in 58 days — RM8.62/day auto-saved"*
+- Displayed on the **Home screen** as a horizontal-scrolling row of Musim cards (top 3 upcoming events). Each card shows: event icon (by category), days remaining pill, event name, daily target (RM X/day), auto-save toggle, and a "Saved today" green badge when triggered
 
 **Auto-save engine (`lib/finance/musim-autosave.ts`):**
 - When the user toggles auto-save ON, an immediate first deduction fires — no waiting until tomorrow
@@ -150,7 +165,6 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 - Money movement: `dailyTarget` is deducted from the **flex bucket** and credited to the **savings bucket**; a `Musim Auto-Save` transaction is written to the ledger with `source = "musim"`
 - Partial deduction if flex balance is below `dailyTarget` — never errors, never overdrafts
 - `POST /api/musim/autosave` exposes a manual trigger for the authenticated user (demo use)
-- `MusimCard` shows a green "Saved today" badge when `autoSaveEnabled && savedToday`
 - Arus plan includes active Musim costs in the Debt Shield target, reducing safe-to-spend accordingly
 
 ---
@@ -166,34 +180,34 @@ Arus is an intelligent daily-budget autopilot that answers one question: *"How m
 - Squad membership is managed through the `squad_members` join table (many-to-many)
 
 **Feature B: Streaks & Milestones**
-- A "streak" is maintained when the user logs at least one transaction per day and stays within their flex bucket
-- Milestone events (Day 7, Day 14, Day 30, RM1K saved) trigger squad-visible celebrations
-- Squad members can react with emoji
-- Broken streak triggers a nudge visible to the squad (opt-in)
+- Streak is maintained per squad: completing a challenge day increments streak, breaking it resets to 0
+- Milestone thresholds (e.g. Day 7, Day 14, Day 30) trigger a `milestone` flag in the API response, which the client shows as a flash notification
+- Streak and savings rate are visible to all squad members on the leaderboard
 
 **Feature C: Group Challenges**
-- Squad creates a 30-day challenge (e.g. "No bubble tea week", "Save RM50 this week")
-- Each member marks daily compliance
-- Leaderboard updates in real time
-- Completion rate shown as a group stat
+- Each squad has one active challenge with a name, description, date range, and optional penalty amount
+- Each member marks daily compliance: "Done today" (completed = true) or "I broke it" (completed = false)
+- Breaking a challenge with a penalty amount automatically increments the squad's **shared bucket** balance by `penaltyAmount`
+- Challenge UI shows: progress bar (my completed days / total days), 7-day dot grid for the current user, group completion rate, today's member count done vs total
+- Leaderboard is ranked by savings rate (% of income saved), never raw amounts — privacy-first
 
 **Feature D: Shared Bucket (Escrow-Like Group Fund)**
-- Squad can create a named shared bucket (e.g. "Bali Trip 2027", "Weekly Lunch Fund")
-- Each member pre-transfers a fixed amount into the bucket
-- When one member pays for the group, they submit the amount → system auto-deducts each member's share from the shared bucket and credits the payer
-- Full transaction history visible to all members
-- *Note: In MVP, bucket balance is simulated. Real transfer integration is production scope.*
+- Each squad has one shared bucket with a name, balance, and optional target amount
+- Any member can contribute via the "Contribute" button → `POST /api/shared-bucket/contribute`
+- Bucket shows: current balance, target amount, progress bar, member avatar stack
+- Penalty amounts from broken challenges auto-credit into the squad's shared bucket
+- *Note: In MVP, balance is real within the demo DB. Real multi-user transfer settlement is production scope.*
 
 ---
 
 ### 4.4 Future Self Projection — Cermin (Longitudinal Behavioural Financial Simulation)
 
-- Displays two projected financial states at age 30: "Current You" vs "Optimised You"
-- User adjusts sliders: savings rate, spending by category (food, transport, entertainment)
-- Compound growth formula recalculates in real time: `FV = PV × (1 + r)^n`
-- Assumes 4% annual return (ASB / fixed deposit baseline for Malaysian context)
-- Visual: split projection graph, RM difference highlighted prominently
-- Motivational framing: *"This one change is worth RM24,400 by the time you're 30."*
+- Displays two projected financial states from current age to age 85: "Current You" vs "Optimised You"
+- User adjusts 3 sliders: **Monthly savings** (RM0–600 added), **Food & drinks cut** (RM0–400 reduced), **Transport cut** (RM0–250 reduced). Combined delta is added to the optimised savings rate
+- Compound growth formula (`buildProjection`) recalculates in real time using 4% p.a. baseline return (ASB / fixed deposit baseline for Malaysian context)
+- Visual: dual area chart (dashed grey = current, solid cyan = optimised), RM delta badge between "Current You" and "Optimised You" end values
+- Sliders can be pre-filled from two sources: Arus "Cermin impact" CTA (pre-fills monthly savings), and Rewind Card 5 "Apply to Cermin" (pre-fills the matching category slider)
+- Starting balance hardcoded to RM4,200 for Amirah demo persona; current monthly savings hardcoded to RM50 baseline
 
 ---
 
@@ -246,16 +260,15 @@ Claude Sonnet reads the raw transaction list (merchant, amount, category, date, 
 ```
 Request:
 {
-  "userId": "xxx",
-  "month": "2026-04"
+  "userId": "xxx"
 }
 
 Flow:
-1. Query all transactions for the month (merchant, amount, category, date)
+1. Query expense transactions from the last 30 days (amount < 0 only — income excluded)
 2. Enrich each transaction with day-of-week
-3. Send raw list + user income to Claude Sonnet
-4. Claude returns structured story JSON
-5. Cache result (rewind is generated once per month per user)
+3. Require minimum 3 transactions — returns 422 otherwise
+4. Send raw list + user income + current month label to Claude Sonnet
+5. Claude returns structured story JSON (no caching — generated fresh each call)
 
 Claude input:
 {
@@ -453,15 +466,23 @@ colors: {
 │                  BACKEND                         │
 │         Next.js API Routes                       │
 │                                                  │
-│  /api/parse-voice          → Claude Haiku                   │
-│  /api/parse-receipt        → Claude Sonnet (Vision)         │
-│  /api/reconcile            → Reconciliation engine          │
-│  /api/arus                 → Bucket orchestration + split   │
-│  /api/musim                → Event savings calculator       │
-│  /api/musim/toggle         → Enable/disable auto-save       │
-│  /api/musim/autosave       → Manual auto-save trigger       │
-│  /api/cron/musim-autosave  → Daily cron (00:00 MYT)         │
-│  /api/rewind               → Claude Sonnet (story AI)       │
+│  /api/parse-voice            → Claude Haiku (NLP)                  │
+│  /api/parse-receipt          → Claude Sonnet Vision                 │
+│  /api/transactions           → Log expense, debit bucket + wallet   │
+│  /api/reconcile              → Fuzzy-match incoming payment          │
+│  /api/arus (POST)            → Salary split into buckets            │
+│  /api/arus (PATCH)           → Update bucket percentages            │
+│  /api/transfer               → Send money, debit flex bucket        │
+│  /api/transfer/history       → Fetch transfer history               │
+│  /api/musim (GET)            → Compute Musim dailyTargets           │
+│  /api/musim/toggle           → Enable/disable auto-save             │
+│  /api/musim/autosave         → Manual auto-save trigger             │
+│  /api/cron/musim-autosave    → Daily cron (00:00 MYT)               │
+│  /api/kawan                  → Challenge completion + streak update  │
+│  /api/shared-bucket/contribute → Add to squad shared bucket         │
+│  /api/rewind                 → Claude Sonnet (story AI)             │
+│  /api/demo-state             → Fetch full client state              │
+│  /api/seed                   → Seed demo account                    │
 └──────────────────┬──────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────┐
@@ -473,19 +494,27 @@ colors: {
 
 **Database Schema (core tables):**
 ```
-users              — id, name, income, salary_day
-transactions       — id, user_id, amount, category, merchant, date, source (voice/receipt/manual)
-debt_records       — id, creditor_id, debtor_name, amount, context, status, settled_at
+users              — id, name, email, income, salary_day
+transactions       — id, user_id, amount, category, merchant, date, source (voice/receipt/manual/transfer/musim/salary/salary_savings), notes
+debt_records       — id, creditor_id, debtor_id (FK, nullable), debtor_name (nullable), amount, context, transaction_id, status (pending/partial/settled), direction (owe_me/i_owe), settled_at
 buckets            — id, user_id, name, percentage, balance, type (savings/bills/flex)
-musim_events       — id, user_id, event_name, event_date, estimated_cost, category, auto_save_enabled, last_auto_save_date
+musim_events       — id, user_id, event_name, event_date, estimated_cost, category, is_system, auto_save_enabled, last_auto_save_date
 squad              — id, name
 squad_members      — squad_id, user_id (many-to-many join)
-squad_streaks      — id, user_id, squad_id, current_streak, last_active, savings_rate
-shared_buckets     — id, squad_id, name, balance, target_amount
+squad_streaks      — id, user_id, squad_id, current_streak, longest_streak, last_active, savings_rate
+shared_buckets     — id, squad_id, name, balance, target_amount (nullable)
 shared_bucket_members — bucket_id, user_id, contribution
 challenges         — id, squad_id, name, description, start_date, end_date, penalty_amount
 challenge_completions — challenge_id, user_id, date, completed
+ledger_accounts    — id, type, currency, user_id (unique), balance_sen (BigInt)
+ledger_entries     — id, transfer_id, account_id, side (DEBIT/CREDIT), amount_sen, currency
+transfers          — id, from_user_id, to_user_id, amount_sen (BigInt), currency, status (POSTED), idempotency_key, debt_record_id (unique FK, nullable), note, posted_at
 ```
+
+**Money handling:**
+- All bucket balances and transaction amounts stored as `Decimal(10,2)` in MYR
+- All wallet/transfer amounts stored as `BigInt` in sen (1 MYR = 100 sen) to avoid floating-point drift
+- Helper functions: `parseMyrToSen`, `formatSenToMyr`, `splitSenByPercentages` in `lib/finance/money.ts`
 
 ---
 
@@ -499,9 +528,10 @@ These terms must be used consistently across the codebase, demo narration, and p
 | Receipt → Claude Vision | Multimodal document extraction with structured output enforcement |
 | Debt auto-match | Event-driven reconciliation engine with fuzzy entity matching |
 | Salary auto-split | Automated financial orchestration layer |
-| Safe-to-spend daily budget | Intelligent daily runway calculation with obligation-first reservation |
+| Safe-to-spend daily budget | Intelligent daily runway calculation with obligation-first reservation (total runway ÷ days until salary) |
 | Debt shield coverage | Obligation coverage assessment with triage classification |
 | AI split recommendation | Context-aware allocation optimisation with behavioural framing |
+| Debt payment → flex deduction | Symmetric bucket settlement: outgoing transfer debits flex bucket to prevent safe-to-spend inflation |
 | Arus → Cermin link | Closed-loop plan-to-projection feedback system |
 | Cermin projection | Longitudinal behavioural financial simulation |
 | Squad streaks | Social reinforcement loop with gamified commitment mechanics |
@@ -535,6 +565,7 @@ STEP 3 — ARUS SAFE-TO-SPEND (Feature 2B)
   Open Arus tab → Safe-to-Spend shows RM28.61/day
   Debt Shield shows 72% coverage (Watch zone) — RM585 needed, RM420 funded
   Tap "Run salary autopilot" → RM2,800 splits: RM560 savings / RM840 bills / RM1,400 flex
+  Inline split line updates live: "Savings RM560 · Bills RM840 · Flex RM1,400"
   Safe-to-Spend recalculates → shield coverage jumps to Protected
   AI recommends 20/25/55 split → tap "Cermin impact" to see 12-month projection
   Duration: ~20 seconds
