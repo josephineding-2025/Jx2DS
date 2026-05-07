@@ -98,6 +98,20 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Log savings allocation separately so the leaderboard can compute savings rate
+    const savingsAllocation = allocations.find((a) => a.type === 'savings')
+    if (savingsAllocation && savingsAllocation.amount > 0) {
+      await prisma.transaction.create({
+        data: {
+          userId,
+          amount: savingsAllocation.amount,
+          category: 'Savings',
+          merchant: 'Salary Split — Savings',
+          source: 'salary_savings',
+        },
+      })
+    }
+
     // Credit the user's wallet
     await prisma.ledgerAccount.update({
       where: { userId },

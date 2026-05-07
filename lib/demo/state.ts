@@ -212,13 +212,35 @@ export async function getTransactionsState(userId: string) {
 }
 
 export async function getDebtsState(userId: string) {
-  const debts = await prisma.debtRecord.findMany({
-    where: { creditorId: userId },
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    include: { debtor: { select: { name: true } } },
-  });
+  const [oweMeDebts, iOweDebts] = await Promise.all([
+    prisma.debtRecord.findMany({
+      where: { creditorId: userId },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      include: { debtor: { select: { name: true } } },
+    }),
+    prisma.debtRecord.findMany({
+      where: { debtorId: userId },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      include: { creditor: { select: { name: true } } },
+    }),
+  ]);
 
-  return debts.map(toDebtState);
+  return [
+    ...oweMeDebts.map(toDebtState),
+    ...iOweDebts.map((debt) => ({
+      id: debt.id,
+      creditorId: debt.creditorId,
+      debtorId: debt.debtorId,
+      debtorName: debt.creditor.name,
+      amount: Number(debt.amount),
+      context: debt.context,
+      transactionId: debt.transactionId,
+      status: debt.status as "pending" | "settled" | "partial",
+      direction: "i_owe" as const,
+      settledAt: debt.settledAt?.toISOString() ?? null,
+      createdAt: debt.createdAt.toISOString(),
+    })),
+  ];
 }
 
 export async function getBucketsState(userId: string) {
@@ -321,18 +343,21 @@ export async function getSquadsState(userId: string) {
       const membersWithRate = await Promise.all(
         streaks.map(async (streak) => {
           const cycleStart = getLastSalaryDay(streak.user.salaryDay, today);
-          const saved = await prisma.transaction.aggregate({
-            where: {
-              userId: streak.userId,
-              source: { in: ["salary", "musim"] },
-              amount: { gt: 0 },
-              date: { gte: cycleStart },
-            },
-            _sum: { amount: true },
-          });
+          const [salarySaved, musimSaved] = await Promise.all([
+            prisma.transaction.aggregate({
+              where: { userId: streak.userId, source: "salary_savings", date: { gte: cycleStart } },
+              _sum: { amount: true },
+            }),
+            prisma.transaction.aggregate({
+              where: { userId: streak.userId, source: "musim", date: { gte: cycleStart } },
+              _sum: { amount: true },
+            }),
+          ]);
+          const totalSaved =
+            Number(salarySaved._sum.amount ?? 0) +
+            Math.abs(Number(musimSaved._sum.amount ?? 0));
           const income = Number(streak.user.income);
-          const savingsRate =
-            income > 0 ? Math.min(100, (Number(saved._sum.amount ?? 0) / income) * 100) : 0;
+          const savingsRate = income > 0 ? Math.min(100, (totalSaved / income) * 100) : 0;
           return {
             userId: streak.userId,
             name: streak.user.name,
