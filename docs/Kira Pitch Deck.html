@@ -893,11 +893,257 @@
       font-weight: 950;
     }
 
-    /* Slide 6 */
-    .built-layout {
-      height: 100%;
+    /* Slide 5 — Tech Diagram */
+    .tech-diagram {
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto auto auto auto;
+      gap: 0;
+      align-self: center;
+      width: 100%;
+    }
+
+    .tech-row {
+      display: grid;
+      align-items: stretch;
+    }
+
+    .tech-row-label {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .tech-node {
+      padding: 20px 24px;
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tech-node .tech-name {
+      font-size: 18px;
+      font-weight: 950;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .tech-node .tech-detail {
+      font-size: 13px;
+      color: var(--text-3);
+      line-height: 1.3;
+    }
+
+    .tech-node .tech-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .tech-flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    .tech-flow-arrow svg {
+      opacity: 0.4;
+    }
+
+    .tech-pipe {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 0 0 0 0;
+    }
+
+    .tech-pipe .tech-node {
+      padding: 16px 18px;
+      text-align: center;
+      align-items: center;
+    }
+
+    .tech-canvas {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .tech-canvas .col-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 18px;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      writing-mode: horizontal-tb;
+      color: var(--text-3);
+    }
+
+    .tech-canvas .col-nodes {
+      display: grid;
+      grid-auto-flow: column;
+      gap: 12px;
+    }
+
+    .tech-connector {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 6px 0;
+    }
+
+    .tech-connector .conn-line {
+      flex: 1;
+      height: 2px;
+      border-radius: 1px;
+      background: linear-gradient(90deg, var(--purple), var(--cyan));
+      opacity: 0.35;
+    }
+
+    .tech-connector .conn-label {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .tech-connector .conn-arrow {
+      color: var(--cyan);
+      opacity: 0.5;
+    }
+
+    .tech-layer {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .tech-layer-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 20px;
+      border-radius: 18px 18px 0 0;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .tech-layer-body {
+      display: grid;
+      gap: 12px;
+      padding: 16px 20px;
+    }
+
+    .tech-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.055);
+      font-size: 15px;
+      font-weight: 850;
+      color: #fff;
+    }
+
+    .tech-chip .chip-label {
+      color: var(--text-3);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 64px 1fr 64px 1fr;
+      gap: 0;
+      align-items: stretch;
+    }
+
+    .arch-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .arch-arrow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .arch-arrow-col .arrow-line {
+      width: 2px;
+      flex: 1;
+      border-radius: 1px;
+      background: linear-gradient(180deg, var(--purple), var(--cyan));
+      opacity: 0.4;
+    }
+
+    .arch-box {
+      border-radius: 20px;
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .arch-box .arch-title {
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .arch-box .arch-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .arch-tag {
+      padding: 7px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 850;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .arch-tag.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 800;
     }
 
     .built-grid {
@@ -1269,7 +1515,7 @@
           <div class="card reveal" style="--d:400ms;padding:30px 26px;min-height:360px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,rgba(236,72,153,0.26),rgba(124,58,237,0.18)),var(--surface);box-shadow:inset 0 0 0 1px rgba(236,72,153,0.32);">
             <div style="font-size:12px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--pink);">05 · NEW</div>
             <div style="font-size:48px;font-weight:950;line-height:0.9;letter-spacing:-0.04em;color:var(--pink);">No<br>More<br>Samans</div>
-            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">CarPlay integration detects your location and auto-starts your parking session. No more RM30 fines for a 60-sen fee.</p>
+            <p style="color:var(--text-2);font-size:16px;line-height:1.44;flex:1;margin:0;">We integrate CarPlay — SnapIt detects your location and auto-starts your parking session. No more RM30 fines for a 60-cent fee.</p>
             <code style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(236,72,153,0.15);color:var(--pink);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">CarPlay + Auto-pay</code>
           </div>
         </div>
@@ -1278,43 +1524,130 @@
     </section>
 
     <!-- 05 TECH STACK -->
-    <section data-label="Built With">
-      <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:36px;">
+    <section data-label="Tech Stack">
+      <div class="slide-inner" style="display:grid;grid-template-rows:auto 1fr;height:100%;gap:24px;">
         <div>
           <div class="label-row reveal">
-            <span class="badge green">Under the Hood</span>
+            <span class="badge green">Tech Stack</span>
             <span class="meta">05 / 07</span>
           </div>
-          <h2 class="headline reveal" style="--d:90ms;">This is not a mockup. The MVP is live.</h2>
+          <h2 class="headline reveal" style="--d:90ms;">This is not a mockup.<br><span style="color:var(--text-2);font-weight:800;">The MVP is live.</span></h2>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-self:center;">
-          <div class="card reveal" style="--d:160ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
-            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">📱</div>
-            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--green);margin-bottom:10px;">Frontend</div>
-            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Mobile-first Next.js</h3>
-            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Five core tabs rendering a GXBank-style experience on Next.js 16.</p>
-            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">components/snapit/*</code>
+        <div class="reveal" style="--d:160ms;align-self:center;">
+          <div class="arch-grid">
+
+            <!-- COLUMN 1: CLIENT -->
+            <div class="arch-col">
+              <div class="arch-box reveal" style="--d:200ms;background:linear-gradient(180deg,rgba(34,211,238,0.14),rgba(34,211,238,0.04));box-shadow:inset 0 0 0 1px rgba(34,211,238,0.2);">
+                <div class="arch-title" style="color:var(--cyan);">Client Layer</div>
+                <div class="arch-items">
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.15);">Next.js 16</span>
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.15);">React 19</span>
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.15);">Tailwind CSS 4</span>
+                </div>
+              </div>
+              <div class="arch-box reveal" style="--d:280ms;background:linear-gradient(180deg,rgba(34,211,238,0.10),rgba(34,211,238,0.03));box-shadow:inset 0 0 0 1px rgba(34,211,238,0.14);">
+                <div style="font-size:12px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;">UI Features</div>
+                <div class="arch-items">
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.10);">Framer Motion</span>
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.10);">Recharts</span>
+                  <span class="arch-tag" style="background:rgba(34,211,238,0.10);">Lucide Icons</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ARROW 1 -->
+            <div class="arch-arrow-col reveal" style="--d:220ms;">
+              <div class="arrow-line" style="height:36px;"></div>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 0 L16 8 L8 16" stroke="currentColor" stroke-width="1.5" opacity="0.4"/></svg>
+              <div class="arrow-line"></div>
+              <span style="writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.14em;">REST</span>
+            </div>
+
+            <!-- COLUMN 2: API + AI -->
+            <div class="arch-col">
+              <div class="arch-box reveal" style="--d:240ms;background:linear-gradient(180deg,rgba(124,58,237,0.22),rgba(124,58,237,0.06));box-shadow:inset 0 0 0 1px rgba(167,139,250,0.24);">
+                <div class="arch-title" style="color:var(--purple-light);">AI Layer</div>
+                <div class="arch-items">
+                  <span class="arch-tag" style="background:rgba(124,58,237,0.22);">OpenRouter</span>
+                  <span class="arch-tag" style="background:rgba(124,58,237,0.22);">Claude</span>
+                </div>
+                <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--cyan);justify-content:center;">/api/parse-voice</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--cyan);justify-content:center;">/api/parse-receipt</span>
+                </div>
+              </div>
+              <div class="arch-box reveal" style="--d:320ms;background:linear-gradient(180deg,rgba(124,58,237,0.12),rgba(124,58,237,0.03));box-shadow:inset 0 0 0 1px rgba(167,139,250,0.14);">
+                <div style="font-size:12px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:var(--purple-light);margin-bottom:8px;">API Routes</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/arus</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/transfer</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/reconcile</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/rewind</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/cron</span>
+                  <span class="arch-tag mono" style="background:rgba(255,255,255,0.04);color:var(--text-2);justify-content:center;">/api/musim</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ARROW 2 -->
+            <div class="arch-arrow-col reveal" style="--d:300ms;">
+              <div class="arrow-line" style="height:36px;"></div>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 0 L16 8 L8 16" stroke="currentColor" stroke-width="1.5" opacity="0.4"/></svg>
+              <div class="arrow-line"></div>
+              <span style="writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.14em;">PRISMA</span>
+            </div>
+
+            <!-- COLUMN 3: DATA -->
+            <div class="arch-col">
+              <div class="arch-box reveal" style="--d:340ms;background:linear-gradient(180deg,rgba(74,222,128,0.16),rgba(74,222,128,0.04));box-shadow:inset 0 0 0 1px rgba(74,222,128,0.22);">
+                <div class="arch-title" style="color:var(--green);">Data Layer</div>
+                <div class="arch-items">
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.16);">Prisma ORM</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.16);">PostgreSQL</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.16);">Supabase</span>
+                </div>
+              </div>
+              <div class="arch-box reveal" style="--d:400ms;background:linear-gradient(180deg,rgba(74,222,128,0.10),rgba(74,222,128,0.03));box-shadow:inset 0 0 0 1px rgba(74,222,128,0.14);">
+                <div style="font-size:12px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Schema</div>
+                <div class="arch-items">
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">LedgerAccount</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">Transfer</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">LedgerEntry</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">DebtRecord</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">Squad</span>
+                  <span class="arch-tag" style="background:rgba(74,222,128,0.10);">MusimEvent</span>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div class="card reveal" style="--d:230ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
-            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">🧠</div>
-            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--purple-light);margin-bottom:10px;">AI Parsing</div>
-            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Claude via OpenRouter</h3>
-            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Voice and receipt pipelines call Claude to structure messy real-world data instantly into ledger entries.</p>
-            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">/api/parse-voice</code>
-          </div>
-          <div class="card reveal" style="--d:300ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
-            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">🔒</div>
-            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">Data Layer</div>
-            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Prisma Double-Entry Ledger</h3>
-            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Bulletproof double-entry ledger for wallets, transfers, and debt settlement with full audit trail.</p>
-            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">lib/finance/transfer.ts</code>
-          </div>
-          <div class="card reveal" style="--d:370ms;padding:38px 34px;min-height:310px;display:flex;flex-direction:column;">
-            <div style="width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:26px;margin-bottom:18px;">⚡</div>
-            <div style="font-size:12px;font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;">Intelligence Layer</div>
-            <h3 style="font-size:28px;font-weight:950;letter-spacing:-0.025em;color:#fff;line-height:1.1;margin:0;">Daily Crons on Live State</h3>
-            <p style="margin-top:14px;color:var(--text-2);font-size:17px;line-height:1.44;flex:1;">Seasonal savings, Safe-to-Spend calculations, and real-time leaderboards running on live data.</p>
-            <code style="margin-top:14px;display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--cyan);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;">lib/finance/*</code>
+
+          <!-- Bottom bar: Intelligence -->
+          <div style="margin-top:18px;" class="reveal" style="--d:440ms;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+              <div style="padding:16px 20px;border-radius:16px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.04));box-shadow:inset 0 0 0 1px rgba(245,158,11,0.2);display:flex;align-items:center;gap:14px;">
+                <span style="font-size:22px;">⚡</span>
+                <div>
+                  <div style="font-size:14px;font-weight:950;color:var(--amber);letter-spacing:0.04em;">Safe-to-Spend</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:3px;">Real-time budget calculation from live ledger state</div>
+                </div>
+              </div>
+              <div style="padding:16px 20px;border-radius:16px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.04));box-shadow:inset 0 0 0 1px rgba(245,158,11,0.2);display:flex;align-items:center;gap:14px;">
+                <span style="font-size:22px;">🎊</span>
+                <div>
+                  <div style="font-size:14px;font-weight:950;color:var(--amber);letter-spacing:0.04em;">Musim Savings</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:3px;">Seasonal auto-save crons for Hari Raya, Deepavali & more</div>
+                </div>
+              </div>
+              <div style="padding:16px 20px;border-radius:16px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.04));box-shadow:inset 0 0 0 1px rgba(245,158,11,0.2);display:flex;align-items:center;gap:14px;">
+                <span style="font-size:22px;">🏆</span>
+                <div>
+                  <div style="font-size:14px;font-weight:950;color:var(--amber);letter-spacing:0.04em;">Squad Leaderboards</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:3px;">Real-time streaks, savings rates & challenge tracking</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1340,70 +1673,12 @@
       <div class="slide-num">06 / 07</div>
     </section>
 
-    <!-- 07 SNAPIT REWIND -->
-    <section data-label="SnapIt Rewind">
-      <div class="slide-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:80px;height:100%;align-items:center;">
-        <div>
-          <div class="label-row reveal">
-            <span class="badge" style="background:linear-gradient(135deg,var(--grad-from),var(--grad-to));">SnapIt Rewind</span>
-            <span class="meta">07 / 08</span>
-          </div>
-          <h2 class="headline reveal" style="--d:90ms;font-size:64px;">Spotify Wrapped,<br><span style="color:var(--purple-light);">but for your money.</span></h2>
-          <p class="body-copy reveal" style="--d:180ms;margin-top:30px;">To keep users engaged, we built <strong>SnapIt Rewind</strong> — an AI-generated monthly summary of your spending behaviour, complete with personalised, actionable recommendations.</p>
-          <div style="margin-top:32px;display:grid;gap:12px;" class="reveal" style="--d:260ms;">
-            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
-              <span style="font-size:20px;">📊</span>
-              <span style="font-size:18px;font-weight:800;color:#fff;">5-card swipeable AI story, generated monthly</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
-              <span style="font-size:20px;">🎯</span>
-              <span style="font-size:18px;font-weight:800;color:#fff;">Personalised, actionable recommendations</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.055);">
-              <span style="font-size:20px;">🔁</span>
-              <span style="font-size:18px;font-weight:800;color:#fff;">Spending personality + hidden cost reveals</span>
-            </div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;" class="reveal" style="--d:200ms;">
-          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#4C1D95,#7C3AED);">
-            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Month</div>
-            <div>
-              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">RM2,240</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">spent in April</div>
-            </div>
-          </div>
-          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#831843,#EC4899);">
-            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Spending Type</div>
-            <div>
-              <div style="font-size:40px;font-weight:950;letter-spacing:-0.02em;line-height:1.1;color:#fff;">🏄 Weekend<br>Warrior</div>
-            </div>
-          </div>
-          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#064E3B,#10B981);">
-            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Hidden Cost</div>
-            <div>
-              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">RM936</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">per year on bubble tea</div>
-            </div>
-          </div>
-          <div style="border-radius:26px;padding:28px 22px;min-height:210px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#1E3A5F,#3B82F6);">
-            <div style="font-size:10px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Unlock</div>
-            <div>
-              <div style="font-size:50px;font-weight:950;letter-spacing:-0.04em;line-height:1;color:#fff;">+RM28k</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:5px;">by the time you're 30</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="slide-num">07 / 08</div>
-    </section>
-
-    <!-- 08 CLOSE -->
+    <!-- 07 CLOSE -->
     <section class="close-slide" data-label="Close">
       <div class="slide-inner close-inner">
         <div class="close-copy">
-          <div class="line-a reveal">Stop asking Malaysian youth to try harder.</div>
-          <div class="line-b reveal" style="--d: 140ms;">Make resilience the default setting.</div>
+          <div class="line-a reveal">We do the heavy lifting,</div>
+          <div class="line-b reveal" style="--d: 140ms;">so young Malaysians can just live their lives.</div>
           <div class="name reveal" style="--d: 280ms;">SNAPIT</div>
           <div class="tag reveal" style="--d: 380ms;">Your money, on autopilot.</div>
         </div>
