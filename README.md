@@ -1,10 +1,10 @@
-# Kira — AI-Powered Financial Resilience Companion
+# SnapIt — AI-Powered Financial Resilience Companion
 
 > **Live Demo:** [https://jx2ds.vercel.app/login](https://jx2ds.vercel.app/login)
 
 **Your money, on autopilot.**
 
-Kira is an AI-powered financial companion for Malaysian students and fresh graduates. Built for the GXBank Youth Resilience Challenge, it removes friction from financial decision-making so users build good habits without relying on willpower.
+SnapIt is an AI-powered financial companion for Malaysian students and fresh graduates. Built for the GXBank Youth Resilience Challenge, it removes friction from financial decision-making so users build good habits without relying on willpower.
 
 ## Features
 
